@@ -5,7 +5,8 @@ const { Schema } = mongoose;
 let userSchema = new Schema({
     uuid: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     displayName: {
         type: String,
@@ -343,6 +344,50 @@ module.exports.getUserById = (targetUuid) => {
 };
 
 // Follow Functions
+/**
+ * 
+ * @param {String} userId The MongoDB _id of the user.
+ * @returns {Promise<[{ _id: ObjectId, followedBy: Object, following: Object, dateFollowed: Date }]>} An array of follows added by the specified user, if the Promise resolution is successful.
+ */
+module.exports.findFollowsByUser = (userId) => {
+
+    return new Promise((resolve, reject) => {
+
+        Follows.find({ followedBy: userId }).sort('dateFollowed').populate('following').exec().then((follows) => {
+            resolve(follows);
+        }).catch((err) => {
+            reject(err);
+        });
+
+    });
+
+};
+
+/**
+ * 
+ * @param {{
+ * followedBy: mongoose.Schema.Types.ObjectId,
+ * following: mongoose.Schema.Types.ObjectId,
+ * dateFollowed: Date}} followData The data to be added to the Mongo database for the newly registered follow.
+ * @returns {Promise<any>} The newly created follow document, if the Promise resolution is successful. 
+ */
+module.exports.addFollow = (followData) => {
+
+    return new Promise((resolve, reject) => {
+
+        newFollow = new Follows(followData);
+        newFollow.save((err) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(newFollow);
+            }
+        });
+
+    });
+
+};
+
 // Rating Functions
 // Contact Request Functions
 // Contact Topic Functions

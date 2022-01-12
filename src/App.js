@@ -51,6 +51,31 @@ app.post('/api/users', (req, res) => {
     }
 });
 
+    // Follow Routes
+app.get('/api/follows/user/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.findFollowsByUser(id).then((follows) => {
+        res.status(200).json({ message: `Successfully found all user's followed by the user.`, data: follows });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
+app.post('/api/follows', (req, res) => {
+    if (!req.body.followData) {
+        res.status(400).json({ error: `Follow data must be provided.` });
+    } else {
+
+        Database.addFollow(req.body.followData).then((follow) => {
+            res.status(201).json({ message: `Successfully registered new user follow.`, data: follow });
+        }).catch((err) => {
+            res.status(400).json({ error: err });
+        });
+
+    }
+});
+
 // Connect to the database and start the server if successful.
 const PORT = process.env.PORT || 8080;
 var dbURL = process.env.MONGO_URL;
