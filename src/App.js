@@ -16,6 +16,22 @@ app.get("/", (req, res) => {
 });
 
     // User Routes
+// Add new user data to the database.
+app.post('/api/users', (req, res) => {
+    if (!req.body.userData) {
+        res.status(400).json({ error: `User data must be provided.` });
+    }
+    else {
+
+        Database.addUser(req.body.userData).then((user) => {
+            res.status(201).json({ message: `Successfully saved user data.`, data: user });
+        }).catch((err) => {
+            res.status(400).json({ error: err });
+        });
+
+    }
+});
+
 // Find a specific user's data by their Firebase UUID.
 app.get('/api/users/:uuid', (req, res) => {
     const { uuid } = req.params;
@@ -35,34 +51,7 @@ app.get('/api/users/:uuid', (req, res) => {
 
 });
 
-// Add new user data to the database.
-app.post('/api/users', (req, res) => {
-    if (!req.body.userData) {
-        res.status(400).json({ error: `User data must be provided.` });
-    }
-    else {
-
-        Database.addUser(req.body.userData).then((user) => {
-            res.status(201).json({ message: `Successfully saved user data.`, data: user });
-        }).catch((err) => {
-            res.status(400).json({ error: err });
-        });
-
-    }
-});
-
     // Follow Routes
-// Get all users followed by the user with the provided Mongo ObjectId (_id).
-app.get('/api/follows/user/:id', (req, res) => {
-    const { id } = req.params;
-
-    Database.findFollowsByUser(id).then((follows) => {
-        res.status(200).json({ message: `Successfully found all user's followed by the user.`, data: follows });
-    }).catch((err) => {
-        res.status(500).json({ error: err });
-    });
-});
-
 // Register a new follow between two users in the Mongo database.
 app.post('/api/follows', (req, res) => {
     if (!req.body.followData) {
@@ -78,12 +67,77 @@ app.post('/api/follows', (req, res) => {
     }
 });
 
+// Get all users followed by the user with the provided Mongo ObjectId (_id).
+app.get('/api/follows/following/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.findFollowingByUser(id).then((follows) => {
+        res.status(200).json({ message: `Successfully found all user's followed by the user.`, data: follows });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
+// Get all users which are following the user with the provided Mongo ObjectId (_id).
+app.get('/api/follows/followers/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.findFollowersByUser(id).then((followers) => {
+        res.status(200).json({ message: `Successfully found all user's followers.`, data: followers });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
 // Remove an existing follow relationship.
 app.delete('/api/follows/:id', (req, res) =>{
     const { id } = req.params;
 
     Database.removeFollow(id).then((data) => {
         res.status(200).json({ message: data });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
+    // Rating Routes
+// Add a rating to the database.
+app.post('/api/ratings', (req, res) => {
+
+    if (!req.body.ratingData) { res.status(400).json({ error: `Rating data must be provided.` }); }
+    else {
+
+        Database.addRating(req.body.ratingData).then((rating) => {
+
+            res.status(200).json({ message: `The rating was added successfully.`, data: rating });
+
+        }).catch(err => {
+            res.status(500).json({ error: err });
+        });
+
+    }
+
+});
+
+// Find ratings by user.
+app.get('/api/ratings/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.getUserRatings(id).then((ratings) => {
+
+        res.status(200).json({ message: `Successfully found all ratings for the specified user.`, data: ratings });
+
+    }).catch(err => {
+        res.status(500).json({ error: err });
+    });
+});
+
+// Remove a rating with the specified id.
+app.delete('/api/ratings/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.removeRating(id).then((msg) => {
+        res.status(200).json({ message: msg });
     }).catch((err) => {
         res.status(500).json({ error: err });
     });
