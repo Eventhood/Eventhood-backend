@@ -362,7 +362,7 @@ module.exports.findFollowingByUser = (userId) => {
 
     return new Promise((resolve, reject) => {
 
-        Follows.find({ followedBy: userId }, ['following', 'dateFollowed']).sort('dateFollowed').populate('following').exec().then((follows) => {
+        Follows.find({ followedBy: userId }, ['following', 'dateFollowed']).sort('dateFollowed').populate('following', [ 'displayName', 'accountHandle', 'photoURL' ]).exec().then((follows) => {
             resolve(follows);
         }).catch((err) => {
             reject(err);
@@ -382,7 +382,7 @@ module.exports.findFollowersByUser = (userId) => {
 
     return new Promise((resolve, reject) => {
 
-        Follows.find({ following: userId }, [ 'followedBy', 'dateFollowed' ]).sort('dateFollowed').populate('followedBy').exec().then((followers) => {
+        Follows.find({ following: userId }, [ 'followedBy', 'dateFollowed' ]).sort('dateFollowed').populate('followedBy', [ 'displayName', 'accountHandle', 'photoURL' ]).exec().then((followers) => {
             resolve(followers);
         }).catch(err => {
             reject(err);
