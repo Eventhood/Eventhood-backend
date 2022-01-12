@@ -476,7 +476,7 @@ module.exports.getUserRatings = (userId) => {
 
     return new Promise((resolve, reject) => {
 
-        Ratings.find({ userRated: userId }, [ 'ratedBy', 'rating', 'dateRated' ]).sort('dateRated').populate('ratedBy').exec().then((ratings) => {
+        Ratings.find({ userRated: userId }, [ 'ratedBy', 'rating', 'dateRated' ]).sort('dateRated').populate('ratedBy', [ 'displayName', 'accountHandle', 'photoURL' ]).exec().then((ratings) => {
             resolve(ratings);
         }).catch((err) => {
             reject(err);
