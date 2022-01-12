@@ -52,6 +52,7 @@ app.post('/api/users', (req, res) => {
 });
 
     // Follow Routes
+// Get all users followed by the user with the provided Mongo ObjectId (_id).
 app.get('/api/follows/user/:id', (req, res) => {
     const { id } = req.params;
 
@@ -62,6 +63,7 @@ app.get('/api/follows/user/:id', (req, res) => {
     });
 });
 
+// Register a new follow between two users in the Mongo database.
 app.post('/api/follows', (req, res) => {
     if (!req.body.followData) {
         res.status(400).json({ error: `Follow data must be provided.` });
@@ -74,6 +76,17 @@ app.post('/api/follows', (req, res) => {
         });
 
     }
+});
+
+// Remove an existing follow relationship.
+app.delete('/api/follows/:id', (req, res) =>{
+    const { id } = req.params;
+
+    Database.removeFollow(id).then((data) => {
+        res.status(200).json({ message: data });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
 });
 
 // Connect to the database and start the server if successful.

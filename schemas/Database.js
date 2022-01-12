@@ -388,6 +388,24 @@ module.exports.addFollow = (followData) => {
 
 };
 
+/**
+ * 
+ * @param {String} followId The _id of the follow document to be removed. 
+ * @returns {Promise<String>} A success message if the Promise resolution is successful.
+ */
+
+module.exports.removeFollow = (followId) => {
+
+    return new Promise((resolve, reject) => {
+        Follows.deleteOne({ _id: followId }).exec().then((data) => {
+            resolve(`Successfully unfollowed the user.`);
+        }).catch((err) => {
+            reject(err);
+        });
+    });
+
+}
+
 // Rating Functions
 // Contact Request Functions
 // Contact Topic Functions
