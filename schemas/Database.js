@@ -67,6 +67,11 @@ let ratingsSchema = new Schema({
         required: true,
         min: 1,
         max: 5
+    },
+    dateRated: {
+        type: Date,
+        required: false,
+        default: Date.now()
     }
 });
 
@@ -247,6 +252,7 @@ let EventRegistrations;
 */
 
 /**
+ * Establish a connection with the Mongo database using the provided connection string, and create and assign all schema models.
  * 
  * @param {String} conString The MongoDB Connection URL as a string.
  * @returns {Promise<null>} A resolvable promise indicating success or failure to connect.
@@ -284,6 +290,7 @@ module.exports.connect = (conString) => {
 
 // User Functions
 /**
+ * Add a new user to the Mongo database, using the provided user data.
  * 
  * @param {{
  *  uuid: String,
@@ -317,6 +324,7 @@ module.exports.addUser = (userData) => {
 };
 
 /**
+ * Get a single user by their Firebase UUID.
  * 
  * @param {String} targetUuid The UUID of the desired user. 
  * @returns {Promise<{
@@ -345,15 +353,16 @@ module.exports.getUserById = (targetUuid) => {
 
 // Follow Functions
 /**
+ * Get all of the follows where the user with the specified Mongo id matches the "followedBy" property.
  * 
  * @param {String} userId The MongoDB _id of the user.
  * @returns {Promise<[{ _id: ObjectId, followedBy: Object, following: Object, dateFollowed: Date }]>} An array of follows added by the specified user, if the Promise resolution is successful.
  */
-module.exports.findFollowsByUser = (userId) => {
+module.exports.findFollowingByUser = (userId) => {
 
     return new Promise((resolve, reject) => {
 
-        Follows.find({ followedBy: userId }, ['following', 'dateFollowed']).sort('dateFollowed').populate('following').exec().then((follows) => {
+        Follows.find({ followedBy: userId }, ['following', 'dateFollowed']).sort('dateFollowed').populate('following', [ 'displayName', 'accountHandle', 'photoURL' ]).exec().then((follows) => {
             resolve(follows);
         }).catch((err) => {
             reject(err);
@@ -364,6 +373,27 @@ module.exports.findFollowsByUser = (userId) => {
 };
 
 /**
+ * Get all of the follows where the user with the specified Mongo id matches the "following" property.
+ * 
+ * @param {String} userId The MongoDB ObjectId (_id) of the user.
+ * @returns {Promise<[{ followedBy: Object, dateFollowed: Date }]>} An array of follows containing the user who followed the specified id, and the date the follow was registered, if the Promise resolution is successful.
+ */
+module.exports.findFollowersByUser = (userId) => {
+
+    return new Promise((resolve, reject) => {
+
+        Follows.find({ following: userId }, [ 'followedBy', 'dateFollowed' ]).sort('dateFollowed').populate('followedBy', [ 'displayName', 'accountHandle', 'photoURL' ]).exec().then((followers) => {
+            resolve(followers);
+        }).catch(err => {
+            reject(err);
+        });
+
+    });
+
+}
+
+/**
+ * Add a new follow relationship to the Mongo database using the provided follow data.
  * 
  * @param {{
  * followedBy: mongoose.Schema.Types.ObjectId,
@@ -389,6 +419,7 @@ module.exports.addFollow = (followData) => {
 };
 
 /**
+ * Remove the follow from the Mongo database with the specified Mongo id.
  * 
  * @param {String} followId The _id of the follow document to be removed. 
  * @returns {Promise<String>} A success message if the Promise resolution is successful.
@@ -407,6 +438,74 @@ module.exports.removeFollow = (followId) => {
 }
 
 // Rating Functions
+/**
+ * Add the provided rating to the Mongo database.
+ * 
+ * @param {{
+ *  userRated: mongoose.Schema.Types.ObjectId,
+ *  ratedBy: mongoose.Schema.Types.ObjectId,
+ *  rating: Number
+ * }} ratingData The rating data to be saved in the Mongo database.
+ * @returns {Promise<any>} The newly saved rating from the Mongo database, if the Promise resolution is successful.
+ */
+module.exports.addRating = (ratingData) => {
+
+    return new Promise((resolve, reject) => {
+
+        let newRating = new Ratings(ratingData);
+        newRating.save(err => {
+            if (err) {
+                reject(err);
+            }
+            else {
+                resolve(newRating);
+            }
+        });
+
+    });
+
+};
+
+/**
+ * Get all of the ratings given to the user with a specified Mongo id.
+ * 
+ * @param {String} userId The MongoDB ObjectId (_id) of the rated user.
+ * @returns {Promise<{ ratedBy: Object, rating: Number, dateRated: Date }>} An array of ratings given to the user with the provided id.
+ */
+module.exports.getUserRatings = (userId) => {
+
+    return new Promise((resolve, reject) => {
+
+        Ratings.find({ userRated: userId }, [ 'ratedBy', 'rating', 'dateRated' ]).sort('dateRated').populate('ratedBy', [ 'displayName', 'accountHandle', 'photoURL' ]).exec().then((ratings) => {
+            resolve(ratings);
+        }).catch((err) => {
+            reject(err);
+        });
+
+    });
+
+};
+
+/**
+ * Remove the rating with the specified Mongo id from the database.
+ * 
+ * @param {String} ratingId The Mongo ObjectId (_id) of the target rating. 
+ * @returns {Promise<String>} Success message, if the Promise resolution is successful.
+ */
+module.exports.removeRating = (ratingId) => {
+    
+    return new Promise((resolve, reject) => {
+
+        Ratings.deleteOne({ _id: ratingId }).exec().then(() => {
+            resolve(`The rating was successfully removed.`);
+        }).catch((err) => {
+            reject(err);
+        });
+
+    });
+
+};
+
 // Contact Request Functions
 // Contact Topic Functions
 // Event Functions
