@@ -103,7 +103,8 @@ let contactRequestsSchema = new Schema({
 let contactTopicsSchema = new Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     }
 });
 
@@ -582,6 +583,68 @@ module.exports.getAllContactRequests = () => {
 };
 
 // Contact Topic Functions
+/**
+ * Save the provided topic data into the Mongo database as a Contact Request topic.
+ * 
+ * @param {{
+ *  name: String
+ * }} topicData The data to be saved as the contact request topic.
+ * @returns {Promise<{ _id: mongoose.Schema.Types.ObjectId, name: String }>} The newly created contact request topic, if Promise resolution is successful.
+ */
+module.exports.addContactTopic = (topicData) => {
+
+    return new Promise((resolve, reject) => {
+        let newTopic = new ContactTopics(topicData);
+        newTopic.save(err => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(newTopic);
+            }
+        });
+    });
+
+};
+
+/**
+ * Find a single contact request topic using its Mongo ObjectId (_id).
+ * 
+ * @param {String} topicId 
+ * @returns {Promise<{ _id: mongoose.Schema.Types.ObjectId, name: String }>}
+ */
+module.exports.findContactTopicById = (topicId) => {
+
+    return new Promise((resolve, reject) => {
+
+        ContactTopics.findOne({ _id: topicId }).exec().then((topic) => {
+            resolve(topic);
+        }).catch(err => {
+            reject(err);
+        });
+
+    });
+
+};
+
+/**
+ * Get all of the contact request topics in the Mongo database.
+ * 
+ * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, name: String }]>} An array of all contact topics in the Mongo database, if the Promise resolution is successful.
+ */
+module.exports.getAllContactTopics = () => {
+
+    return new Promise((resolve, reject) => {
+
+        ContactTopics.find({}).sort('name').exec().then(topics => {
+            resolve(topics);
+        }).catch(err => {
+            reject(err);
+        });
+
+    });
+
+};
+
 // Event Functions
 // Event Category Functions
 // Event Report Functions

@@ -182,6 +182,47 @@ app.get('/api/contactrequests/:id', (req, res) => {
 
 });
 
+    // Contact Request Topic Routes
+// Add a new contact request topic to the database.
+app.post('/api/contactrequests/topics', (req, res) => {
+    if (!req.body.topicData) {
+        res.status(400).json({ error: `Topic data must be provided.` });
+    } else {
+        Database.addContactTopic(req.body.topicData).then((topic) => {
+            res.status(201).json({ message: `Saved the provided topic successfully.`, data: topic });
+        }).catch(err => {
+            res.status(500).json({ error: err });
+        });
+    }
+});
+
+// Get all contact requests in the database.
+app.get('/api/contactrequests/topics', (req, res) => {
+    Database.getAllContactTopics().then((topics) => {
+        if (topics.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all contact request topics.`, data: topics });
+        } else {
+            res.status(404).json({ message: `There are currently no contact request topics stored in the database.` });
+        }
+    }).catch(err => {
+        res.status(500).json({ error: err });
+    });
+});
+
+// Find a single contact request topic in the database by id.
+app.get('/api/contactrequests/topics/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.findContactTopicById(id).then((topic) => {
+        if (topic) { res.status(200).json({ message: `Successfully retrieved the requested contact request topic.`, data: topic }) }
+        else {
+            res.status(404).json({ message: `The requested contact request topic could not be found.` });
+        }
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
 // Connect to the database and start the server if successful.
 const PORT = process.env.PORT || 8080;
 var dbURL = process.env.MONGO_URL;
