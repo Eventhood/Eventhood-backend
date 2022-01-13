@@ -72,7 +72,11 @@ app.get('/api/follows/following/:id', (req, res) => {
     const { id } = req.params;
 
     Database.findFollowingByUser(id).then((follows) => {
-        res.status(200).json({ message: `Successfully found all user's followed by the user.`, data: follows });
+        if (follows.length > 0) {
+            res.status(200).json({ message: `Successfully found all user's followed by the user.`, data: follows });
+        } else {
+            res.status(404).json({ message: `The specified user is not following any other users.` });
+        }
     }).catch((err) => {
         res.status(500).json({ error: err });
     });
@@ -83,7 +87,11 @@ app.get('/api/follows/followers/:id', (req, res) => {
     const { id } = req.params;
 
     Database.findFollowersByUser(id).then((followers) => {
-        res.status(200).json({ message: `Successfully found all user's followers.`, data: followers });
+        if (followers.length > 0) {
+            res.status(200).json({ message: `Successfully found all user's followers.`, data: followers });
+        } else {
+            res.status(404).json({ message: `The specified user has no followers.` });
+        }
     }).catch((err) => {
         res.status(500).json({ error: err });
     });
@@ -170,7 +178,7 @@ app.get('/api/contactrequests', (req, res) => {
 });
 
 // Find a contact request by it's ObjectId (_id).
-app.get('/api/contactrequests/:id', (req, res) => {
+app.get('/api/contactrequests/single/:id', (req, res) => {
 
     const { id } = req.params;
 
@@ -180,6 +188,21 @@ app.get('/api/contactrequests/:id', (req, res) => {
         res.status(500).json({ error: err });
     });
 
+});
+
+// Find all contact requests submitted by a specific user.
+app.get('/api/contactrequests/user/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.findContactRequestsByUser(id).then((requests) => {
+        if (requests.length > 0) {
+            res.status(200).json({ message: `Successfully found all support requests made by the specified user.`, data: requests });
+        } else {
+            res.status(404).json({ message: `The specified user has not made any support requests.` });
+        }
+    }).catch(err => {
+        res.status(500).json({ error: err });
+    });
 });
 
     // Contact Request Topic Routes

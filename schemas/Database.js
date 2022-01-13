@@ -582,6 +582,26 @@ module.exports.getAllContactRequests = () => {
 
 };
 
+/**
+ * Find all contact requests submitted by the user with the provided Mongo ObjectId (_id).
+ * 
+ * @param {String} userId The Mongo ObjectId (_id) of the target user.
+ * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, user: Object, topic: Object, message: String, requestDate: Date }]>} An array of all contact requests where the user has an id matching the one provided, if Promise resolution is successful.
+ */
+module.exports.findContactRequestsByUser = (userId) => {
+
+    return new Promise((resolve, reject) => {
+
+        ContactRequests.find({ user: userId }).sort('requestDate').populate('user', [ 'displayName', 'accountHandle', 'photoURL' ]).populate('topic').exec().then((requests) => {
+            resolve(requests);
+        }).catch(err => {
+            reject(err);
+        });
+
+    });
+
+}
+
 // Contact Topic Functions
 /**
  * Save the provided topic data into the Mongo database as a Contact Request topic.
