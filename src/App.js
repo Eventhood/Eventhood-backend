@@ -15,6 +15,10 @@ app.get("/", (req, res) => {
     res.json("API is running.");
 });
 
+app.get('/documentation', (req, res) => {
+    res.sendFile('./documentation.html');
+});
+
     // User Routes
 // Add new user data to the database.
 app.post('/api/users', (req, res) => {
