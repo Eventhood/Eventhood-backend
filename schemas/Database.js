@@ -553,7 +553,7 @@ module.exports.findContactRequestById = (requestId) => {
 
     return new Promise((resolve, reject) => {
 
-        ContactRequests.findOne({ _id: requestId }).exec().then((contactReq) => {
+        ContactRequests.findOne({ _id: requestId }).populate('user', [ 'displayName', 'accountHandle', 'photoURL' ]).populate('topic').exec().then((contactReq) => {
             resolve(contactReq);
         }).catch(err => {
             reject(err);
