@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -13,6 +14,10 @@ const Database = require('../schemas/Database');
 // Listen to API routes.
 app.get("/", (req, res) => {
     res.json("API is running.");
+});
+
+app.get('/documentation', (req, res) => {
+    res.sendFile(path.resolve(__dirname, './documentation.html'));
 });
 
     // User Routes
@@ -72,7 +77,11 @@ app.get('/api/follows/following/:id', (req, res) => {
     const { id } = req.params;
 
     Database.findFollowingByUser(id).then((follows) => {
-        res.status(200).json({ message: `Successfully found all user's followed by the user.`, data: follows });
+        if (follows.length > 0) {
+            res.status(200).json({ message: `Successfully found all user's followed by the user.`, data: follows });
+        } else {
+            res.status(404).json({ message: `The specified user is not following any other users.` });
+        }
     }).catch((err) => {
         res.status(500).json({ error: err });
     });
@@ -83,7 +92,11 @@ app.get('/api/follows/followers/:id', (req, res) => {
     const { id } = req.params;
 
     Database.findFollowersByUser(id).then((followers) => {
-        res.status(200).json({ message: `Successfully found all user's followers.`, data: followers });
+        if (followers.length > 0) {
+            res.status(200).json({ message: `Successfully found all user's followers.`, data: followers });
+        } else {
+            res.status(404).json({ message: `The specified user has no followers.` });
+        }
     }).catch((err) => {
         res.status(500).json({ error: err });
     });
@@ -138,6 +151,101 @@ app.delete('/api/ratings/:id', (req, res) => {
 
     Database.removeRating(id).then((msg) => {
         res.status(200).json({ message: msg });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
+    // Contact Request Routes
+// Add a contact request to the database.
+app.post('/api/contactrequests', (req, res) => {
+
+    if (!req.body.contactRequestData) { res.status(400).json({ error: `Contact request data must be provided.` }); }
+    else {
+
+        Database.addContactRequest(req.body.contactRequestData).then((requestData) => {
+            res.status(201).json({ message: `The contact request was sent successfully.`, data: requestData });
+        }).catch(err => {
+            res.status(500).json({ error: err });
+        });
+
+    }
+
+});
+
+// Get all contact requests.
+app.get('/api/contactrequests', (req, res) => {
+    Database.getAllContactRequests().then((requests) => {
+        res.status(200).json({ message: `Successfully retrieved all contact requests.`, data: requests });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
+// Find a contact request by it's ObjectId (_id).
+app.get('/api/contactrequests/single/:id', (req, res) => {
+
+    const { id } = req.params;
+
+    Database.findContactRequestById(id).then((request) => {
+        res.status(200).json({ message: `The requested contact request was found.`, data: request });
+    }).catch(err => {
+        res.status(500).json({ error: err });
+    });
+
+});
+
+// Find all contact requests submitted by a specific user.
+app.get('/api/contactrequests/user/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.findContactRequestsByUser(id).then((requests) => {
+        if (requests.length > 0) {
+            res.status(200).json({ message: `Successfully found all support requests made by the specified user.`, data: requests });
+        } else {
+            res.status(404).json({ message: `The specified user has not made any support requests.` });
+        }
+    }).catch(err => {
+        res.status(500).json({ error: err });
+    });
+});
+
+    // Contact Request Topic Routes
+// Add a new contact request topic to the database.
+app.post('/api/supporttopics', (req, res) => {
+    if (!req.body.topicData) {
+        res.status(400).json({ error: `Topic data must be provided.` });
+    } else {
+        Database.addContactTopic(req.body.topicData).then((topic) => {
+            res.status(201).json({ message: `Saved the provided topic successfully.`, data: topic });
+        }).catch(err => {
+            res.status(500).json({ error: err });
+        });
+    }
+});
+
+// Get all contact requests in the database.
+app.get('/api/supporttopics', (req, res) => {
+    Database.getAllContactTopics().then((topics) => {
+        if (topics.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all contact request topics.`, data: topics });
+        } else {
+            res.status(404).json({ message: `There are currently no contact request topics stored in the database.` });
+        }
+    }).catch(err => {
+        res.status(500).json({ error: err });
+    });
+});
+
+// Find a single contact request topic in the database by id.
+app.get('/api/supporttopics/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.findContactTopicById(id).then((topic) => {
+        if (topic) { res.status(200).json({ message: `Successfully retrieved the requested contact request topic.`, data: topic }) }
+        else {
+            res.status(404).json({ message: `The requested contact request topic could not be found.` });
+        }
     }).catch((err) => {
         res.status(500).json({ error: err });
     });

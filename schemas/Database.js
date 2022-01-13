@@ -1,3 +1,4 @@
+const res = require('express/lib/response');
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -90,6 +91,11 @@ let contactRequestsSchema = new Schema({
     message: {
         type: String,
         required: true
+    },
+    requestDate: {
+        type: Date,
+        required: false,
+        default: Date.now()
     }
 });
 
@@ -97,7 +103,8 @@ let contactRequestsSchema = new Schema({
 let contactTopicsSchema = new Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     }
 });
 
@@ -507,7 +514,157 @@ module.exports.removeRating = (ratingId) => {
 };
 
 // Contact Request Functions
+/**
+ * Using the provided contact request data, save a new contact request to the Mongo database.
+ * 
+ * @param {{
+ *  user: mongoose.Schema.Types.ObjectId,
+ *  topic: mongoose.Schema.Types.ObjectId,
+ *  message: String
+ * }} contactRequestData The object to be saved as the new contact request.
+ * @returns {Promise<any>} The newly created Mongo ContactRequest document, if the Promise resolution is successful.
+ */
+module.exports.addContactRequest = (contactRequestData) => {
+
+    return new Promise((resolve, reject) => {
+
+        let newCR = new ContactRequests(contactRequestData);
+        newCR.save(err => {
+            if (err) {
+                reject(err);
+            } else {
+
+                resolve(newCR);
+
+            }
+        });
+
+    });
+
+};
+
+/**
+ * Find a single ContactRequest in the Mongo database based on it's ObjectId property.
+ * 
+ * @param {String} requestId The Mongo ObjectId (_id) of the ContactRequest.
+ * @returns {Promise<{ _id: mongoose.Schema.Types.ObjectId, user: Object, topic: Object, message: String, requestDate: Date }>} The requested ContactRequest document, if the Promise resolution is successful.
+ */
+module.exports.findContactRequestById = (requestId) => {
+
+    return new Promise((resolve, reject) => {
+
+        ContactRequests.findOne({ _id: requestId }).populate('user', [ 'displayName', 'accountHandle', 'photoURL' ]).populate('topic').exec().then((contactReq) => {
+            resolve(contactReq);
+        }).catch(err => {
+            reject(err);
+        });
+
+    });
+
+};
+
+/**
+ * Get an array of all requests currently in the database.
+ * 
+ * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, user: Object, topic: Object, message: String, requestDate: Date }]>} An array of all ContactRequest documents in the collection, if the Promise resolution is successful.
+ */
+module.exports.getAllContactRequests = () => {
+
+    return new Promise((resolve, reject) => {
+
+        ContactRequests.find({}).sort('requestDate').populate('user', [ 'displayName', 'accountHandle', 'photoURL' ]).populate('topic').exec().then((requests) => {
+            resolve(requests);
+        }).catch(err => {
+            reject(err);
+        });
+
+    });
+
+};
+
+/**
+ * Find all contact requests submitted by the user with the provided Mongo ObjectId (_id).
+ * 
+ * @param {String} userId The Mongo ObjectId (_id) of the target user.
+ * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, user: Object, topic: Object, message: String, requestDate: Date }]>} An array of all contact requests where the user has an id matching the one provided, if Promise resolution is successful.
+ */
+module.exports.findContactRequestsByUser = (userId) => {
+
+    return new Promise((resolve, reject) => {
+
+        ContactRequests.find({ user: userId }).sort('requestDate').populate('user', [ 'displayName', 'accountHandle', 'photoURL' ]).populate('topic').exec().then((requests) => {
+            resolve(requests);
+        }).catch(err => {
+            reject(err);
+        });
+
+    });
+
+}
+
 // Contact Topic Functions
+/**
+ * Save the provided topic data into the Mongo database as a Contact Request topic.
+ * 
+ * @param {{
+ *  name: String
+ * }} topicData The data to be saved as the contact request topic.
+ * @returns {Promise<{ _id: mongoose.Schema.Types.ObjectId, name: String }>} The newly created contact request topic, if Promise resolution is successful.
+ */
+module.exports.addContactTopic = (topicData) => {
+
+    return new Promise((resolve, reject) => {
+        let newTopic = new ContactTopics(topicData);
+        newTopic.save(err => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(newTopic);
+            }
+        });
+    });
+
+};
+
+/**
+ * Find a single contact request topic using its Mongo ObjectId (_id).
+ * 
+ * @param {String} topicId 
+ * @returns {Promise<{ _id: mongoose.Schema.Types.ObjectId, name: String }>}
+ */
+module.exports.findContactTopicById = (topicId) => {
+
+    return new Promise((resolve, reject) => {
+
+        ContactTopics.findOne({ _id: topicId }).exec().then((topic) => {
+            resolve(topic);
+        }).catch(err => {
+            reject(err);
+        });
+
+    });
+
+};
+
+/**
+ * Get all of the contact request topics in the Mongo database.
+ * 
+ * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, name: String }]>} An array of all contact topics in the Mongo database, if the Promise resolution is successful.
+ */
+module.exports.getAllContactTopics = () => {
+
+    return new Promise((resolve, reject) => {
+
+        ContactTopics.find({}).sort('name').exec().then(topics => {
+            resolve(topics);
+        }).catch(err => {
+            reject(err);
+        });
+
+    });
+
+};
+
 // Event Functions
 // Event Category Functions
 // Event Report Functions
