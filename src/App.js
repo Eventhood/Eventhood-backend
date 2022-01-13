@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -16,7 +17,7 @@ app.get("/", (req, res) => {
 });
 
 app.get('/documentation', (req, res) => {
-    res.sendFile('./documentation.html');
+    res.sendFile(path.resolve(process.cwd(), './documentation.html'));
 });
 
     // User Routes
