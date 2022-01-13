@@ -184,7 +184,7 @@ app.get('/api/contactrequests/:id', (req, res) => {
 
     // Contact Request Topic Routes
 // Add a new contact request topic to the database.
-app.post('/api/contactrequests/topics', (req, res) => {
+app.post('/api/supporttopics', (req, res) => {
     if (!req.body.topicData) {
         res.status(400).json({ error: `Topic data must be provided.` });
     } else {
@@ -197,7 +197,7 @@ app.post('/api/contactrequests/topics', (req, res) => {
 });
 
 // Get all contact requests in the database.
-app.get('/api/contactrequests/topics', (req, res) => {
+app.get('/api/supporttopics', (req, res) => {
     Database.getAllContactTopics().then((topics) => {
         if (topics.length > 0) {
             res.status(200).json({ message: `Successfully retrieved all contact request topics.`, data: topics });
@@ -210,7 +210,7 @@ app.get('/api/contactrequests/topics', (req, res) => {
 });
 
 // Find a single contact request topic in the database by id.
-app.get('/api/contactrequests/topics/:id', (req, res) => {
+app.get('/api/supporttopics/:id', (req, res) => {
     const { id } = req.params;
 
     Database.findContactTopicById(id).then((topic) => {
