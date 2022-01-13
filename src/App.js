@@ -17,7 +17,7 @@ app.get("/", (req, res) => {
 });
 
 app.get('/documentation', (req, res) => {
-    res.sendFile(path.resolve(process.cwd(), './documentation.html'));
+    res.sendFile(path.resolve(__dirname, './documentation.html'));
 });
 
     // User Routes
