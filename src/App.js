@@ -143,6 +143,45 @@ app.delete('/api/ratings/:id', (req, res) => {
     });
 });
 
+    // Contact Request Routes
+// Add a contact request to the database.
+app.post('/api/contactrequests', (req, res) => {
+
+    if (!req.body.contactRequestData) { res.status(400).json({ error: `Contact request data must be provided.` }); }
+    else {
+
+        Database.addContactRequest(req.body.contactRequestData).then((requestData) => {
+            res.status(201).json({ message: `The contact request was sent successfully.`, data: requestData });
+        }).catch(err => {
+            res.status(500).json({ error: err });
+        });
+
+    }
+
+});
+
+// Get all contact requests.
+app.get('/api/contactrequests', (req, res) => {
+    Database.getAllContactRequests().then((requests) => {
+        res.status(200).json({ message: `Successfully retrieved all contact requests.`, data: requests });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
+// Find a contact request by it's ObjectId (_id).
+app.get('/api/contactrequests/:id', (req, res) => {
+
+    const { id } = req.params;
+
+    Database.findContactRequestById(id).then((request) => {
+        res.status(200).json({ message: `The requested contact request was found.`, data: request });
+    }).catch(err => {
+        res.status(500).json({ error: err });
+    });
+
+});
+
 // Connect to the database and start the server if successful.
 const PORT = process.env.PORT || 8080;
 var dbURL = process.env.MONGO_URL;
