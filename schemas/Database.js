@@ -665,8 +665,8 @@ module.exports.getAllContactTopics = () => {
 
 };
 
-// Event Functions
-// Event Category Functions
+// Event Functions - returning all events, creating event, finding event by ID, etc.
+// Event Category Functions - CUD (get all, create, update, delete)
 // Event Report Functions
 // Report Topic Functions
 // FAQ Topic Functions
