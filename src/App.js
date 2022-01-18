@@ -264,11 +264,13 @@ app.post('/api/events', (req, res) => {
 
         // Take string location, plug it into geocoding api
         fetch(`${geocodingAPIURL}${event.location.replace(' ', '+')}`, { method: "GET" }).then((data) => {
-            console.log(JSON.stringify(data));
-            res.status(200).json({ data: data });
+            return data.json();
             // Store geocoding result to variable
             // Update eventData location to have the lat and long
             // Pass the updated eventData to the addEvent function.
+        }).then((locationData) => {
+            console.log(JSON.stringify(locationData));
+            res.status(200).json({ data: locationData });
         }).catch((err) => {
             res.status(500).json({ error: err });
         });
