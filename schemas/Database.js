@@ -772,15 +772,44 @@ module.exports.createEventCategory = (categoryData) => {
 
 };
 
+/**
+ * Find a specific event category by it's Mongo ObjectId (_id).
+ * 
+ * @param {String} categoryId The ObjectId of the desired EventCategory document.
+ * @returns { Promise<{
+ *  _id: import('mongoose').ObjectId,
+ *  name: String,
+ *  header: String
+ * }> } The Mongo document for the EventCategory, if Promise resolution is successful.
+ */
 module.exports.getEventCategoryById = (categoryId) => {
 
     return new Promise((resolve, reject) => {
 
-        
+        EventCategories.findOne({ _id: categoryId }).exec().then((category) => {
+            resolve(category);
+        }).catch((err) => { reject(err); })
 
     });
 
 };
+
+/**
+ * Get all of the currently-existing EventCategories in the Mongo database.
+ * 
+ * @returns { Promise<[{ _id: import('mongoose').ObjectId, name: String, header: String }] } An array of all existing EventCategory documents, if Promise resolution is successful.
+ */
+module.exports.getAllEventCategories = () => {
+
+    return new Promise((resolve, reject) => {
+
+        EventCategories.find( {} ).sort('name').exec().then((categories) => {
+            resolve(categories);
+        }).catch(err => { reject(err); });
+
+    });
+    
+}
 
 // Event Report Functions
 // Report Topic Functions

@@ -11,6 +11,7 @@ app.use(express.json());
 dotenv.config();
 
 const Database = require('../schemas/Database');
+const e = require("express");
 
 const geocodingAPIURL = process.env.GEOCODE_API
 
@@ -265,12 +266,31 @@ app.post('/api/events', (req, res) => {
         // Take string location, plug it into geocoding api
         fetch(`${geocodingAPIURL}${event.location.replace(' ', '+')}`, { method: "GET" }).then((data) => {
             return data.json();
-            // Store geocoding result to variable
-            // Update eventData location to have the lat and long
-            // Pass the updated eventData to the addEvent function.
         }).then((locationData) => {
-            console.log(JSON.stringify(locationData));
-            res.status(200).json({ data: locationData });
+            // Check to make sure that the location is valid (has all of the basic fields).
+            if (locationData.results.locations[0].street === "" && locationData.results.locations[0].adminArea6 === "" && locationData.results.locations[0].adminArea5 === "" && locationData.results.locations[0].adminArea4 !== "" && locationData.results.locations[0].adminArea3 === "") {
+
+                res.status(400).json({ error: `The location provided could not be found.` });
+
+            }
+            else {
+                // Store geocoding result to variable
+                let lData = {
+                    lat: locationData.results.locations[0].latLng.lat,
+                    lon: locationData.results.locations[0].latLng.lng
+                }
+
+                // Update eventData location to have the lat and long
+                event.location = lData;
+
+                // Pass the updated eventData to the addEvent function.
+                Database.addEvent(event).then(savedEvent => {
+                    res.status(201).json({ message: `The event was successfully registered.`, data: savedEvent });
+                }).catch((err) => {
+                    res.status(500).json({ error: err });
+                });
+            }
+
         }).catch((err) => {
             res.status(500).json({ error: err });
         });
