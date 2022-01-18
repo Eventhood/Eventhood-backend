@@ -699,7 +699,7 @@ module.exports.getAllEvents = () => {
 };
 
 // Return all events based on UserID
-module.exports.getAllEventsbyID = (userID) => {
+module.exports.getAllEventsbyUserID = (userID) => {
     
     return new Promise((resolve, reject) => {
         Events.find({host: userID}).sort('name').populate('category').populate('host', [ 'accountHandle' ]).exec().then(events => {

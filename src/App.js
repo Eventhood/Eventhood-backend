@@ -256,6 +256,7 @@ app.get('/api/supporttopics/:id', (req, res) => {
 });
 
     // Event Routes
+// Add an event to the database.
 app.post('/api/events', (req, res) => {
 
     if (!req.body.eventData) { res.status(400).json({ error: `Event data must be provided.` }); }
@@ -296,6 +297,84 @@ app.post('/api/events', (req, res) => {
         });
 
     }
+
+});
+
+// Get all events from the database.
+app.get('/api/events', (req, res) => {
+
+    Database.getAllEvents().then((events) => {
+        if (events.length > 0) {
+            res.status(200).json({ message: `Successfully found all events.`, data: events });
+        } else { res.status(404).json({ message: `There are no events currently in the database.` }); }
+    }).catch((err) => { res.status(500).json({ error: err }); });
+
+});
+
+// Get event by event ObjectId (_id).
+app.get('/api/events/single/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.getSingleEventbyEventID(id).then((event) => {
+
+        res.status(200).json({ message: `Successfully found the requested event.`, data: event });
+
+    }).catch(err => { res.status(500).json({ error: err }); });
+});
+
+// Get all events by host ObjectId (_id).
+app.get('/api/events/user/:id', (req, res) => {
+
+    const { id } = req.params;
+
+    Database.getAllEventsbyUserID(id).then((events) => {
+        if (events.length > 0) {
+            res.status(200).json({ message: `Successfully found all events hosted by the specified user.`, data: events });
+        } else {
+            res.status(404).json({ message: `The specified user has no hosted events.` });
+        }
+    }).catch(err => {
+        res.status(500).json({ error: err });
+    });
+
+});
+
+    // EventCategory Routes
+// Add an event category to the database.
+app.post('/api/eventcategories', (req, res) => {
+    if (!req.body.categoryData) { res.status(400).json({ error: `Category data must be provided.` }); }
+    else {
+
+        Database.createEventCategory(req.body.categoryData).then((category) => {
+
+            res.status(201).json({ message: `The event category was successfully saved.`, data: category });
+
+        }).catch((err) => { res.status(500).json({ error: err }); });
+
+    }
+});
+
+// Get all event categories from the database.
+app.get('/api/eventcategories', (req, res) => {
+    
+    Database.getAllEventCategories().then((categories) => {
+        if (categories.length > 0) {
+            res.status(200).json({ message: `Successfully got all event categories.`, data: categories });
+        } else {
+            res.status(404).json({ message: `There are currently no saved event categories.` });
+        }
+    }).catch(err => { res.status(500).json({ error: err }); });
+
+});
+
+// Get a single event category by it's ObjectId (_id).
+app.get('/api/eventcategories/:id', (req, res) => {
+
+    const { id } = req.params;
+
+    Database.getEventCategoryById(id).then((category) => {
+        res.status(200).json({ message: `Successfully retrieved the requested event category.`, data: category });
+    }).catch((err) => { res.status(500).json({ error: err  }); });
 
 });
 
