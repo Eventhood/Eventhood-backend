@@ -1,3 +1,4 @@
+const { is } = require('express/lib/request');
 const res = require('express/lib/response');
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
@@ -120,8 +121,14 @@ let eventsSchema = new Schema({
         required: true
     },
     location: {
-        type: String,
-        required: true
+        lat: {
+            type: Number,
+            required: true
+        },
+        lon: {
+            type: Number,
+            required: true
+        }
     },
     category: {
         type: Schema.Types.ObjectId,
@@ -147,6 +154,11 @@ let eventsSchema = new Schema({
 // SRS 5.1.2.7 - 'EventCategories' Collection
 let eventCategoriesSchema = new Schema({
     name: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    header: {
         type: String,
         required: true
     }
@@ -665,8 +677,111 @@ module.exports.getAllContactTopics = () => {
 
 };
 
-// Event Functions - returning all events, creating event, finding event by ID, etc.
+// Event Functions:
+
+// Return all events
+/**
+ * Get all of the events in the Mongo Database
+ * 
+ * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, host: Object, name: String, 
+ *                  location: String, category: Object, maxParticipants: Number, description: String, startTime: Date }]>} 
+ *      An array of all Events in the Mongo database, if the Promise resolution is successful.
+ */
+module.exports.getAllEvents = () => {
+   
+    return new Promise((resolve, reject)=> {
+        Events.find({}).sort('name').populate('category').populate('host', ['accountHandle']).exec().then(events => {
+            resolve(events);
+        }).catch(err => {
+            reject(err);
+        })
+    })
+};
+
+// Return all events based on UserID
+module.exports.getAllEventsbyID = (userID) => {
+    
+    return new Promise((resolve, reject) => {
+        Events.find({host: userID}).sort('name').populate('category').populate('host', [ 'accountHandle' ]).exec().then(events => {
+            resolve(events);
+        }).catch(err => {
+            reject(err);
+        })
+    })
+}
+
+// Get Single Event based on EventId (Event: _id) - Event Details basically 
+module.exports.getSingleEventbyEventID = (eventID) => {
+
+    return new Promise((resolve, reject) => {
+        Events.findOne({_id: eventID}).populate('category').populate('host', ['accountHandle']).exec().then(events => {
+            resolve(events);
+        }).catch(err => {
+            reject(err);
+        })
+    })
+}
+
+// Create event
+module.exports.addEvent = (eventData) => {
+    
+    return new Promise((resolve, reject) => {
+        let newEvent = new Events(eventData)
+    })
+}
+
+// Update event
+
+// Delete event 
+
+//----------------------------------------------------------------------------------
+
+
 // Event Category Functions - CUD (get all, create, update, delete)
+/**
+ * Save the provided event category data into the Mongo database.
+ * 
+ * @param {{
+ *  name: String
+ * }} categoryData The category data to be saved to the database.
+ * @returns {Promise<{
+ *  _id: import('mongoose').ObjectId,
+ *  name: String
+ * }>} The Mongo document that was saved to the database, if the Promise resolution was successful.
+ */
+module.exports.createEventCategory = (categoryData) => {
+
+    return new Promise((resolve, reject) => {
+        let category = new EventCategories(categoryDetails);
+        category.save((err) => {
+            if (err) {
+                if (err.code === 11000) {
+                    reject(`There is already a category with that name.`);
+                }
+                else {
+                    reject(`There was a problem saving the category.`);
+                }
+            }
+            else {
+
+                resolve(category);
+
+            }
+        });
+    });
+
+};
+
+module.exports.getEventCategoryById = (categoryId) => {
+
+    return new Promise((resolve, reject) => {
+
+        
+
+    });
+
+};
+
 // Event Report Functions
 // Report Topic Functions
 // FAQ Topic Functions

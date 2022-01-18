@@ -11,6 +11,8 @@ dotenv.config();
 
 const Database = require('../schemas/Database');
 
+const geocodingAPIURL = process.env.GEOCODE_API
+
 // Listen to API routes.
 app.get("/", (req, res) => {
     res.json("API is running.");
@@ -249,6 +251,29 @@ app.get('/api/supporttopics/:id', (req, res) => {
     }).catch((err) => {
         res.status(500).json({ error: err });
     });
+});
+
+    // Event Routes
+app.post('/api/events', (req, res) => {
+
+    if (!req.body.eventData) { res.status(400).json({ error: `` }); }
+    else {
+
+        let event = req.body.eventData;
+
+        // Take string location, plug it into geocoding api
+        fetch(`${GEOCODE_API}${event.location.replace(' ', '+')}`, { method: "GET" }).then((data) => {
+            console.log(JSON.stringify(data));
+            res.status(200).json({ data: data });
+            // Store geocoding result to variable
+            // Update eventData location to have the lat and long
+            // Pass the updated eventData to the addEvent function.
+        }).catch((err) => {
+            res.status(500).json({ error: err });
+        });
+
+    }
+
 });
 
 // Connect to the database and start the server if successful.
