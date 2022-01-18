@@ -3,6 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
+import fetch from 'node-fetch';
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -256,7 +258,7 @@ app.get('/api/supporttopics/:id', (req, res) => {
     // Event Routes
 app.post('/api/events', (req, res) => {
 
-    if (!req.body.eventData) { res.status(400).json({ error: `` }); }
+    if (!req.body.eventData) { res.status(400).json({ error: `Event data must be provided.` }); }
     else {
 
         let event = req.body.eventData;
