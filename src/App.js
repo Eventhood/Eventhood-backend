@@ -266,8 +266,10 @@ app.post('/api/events', (req, res) => {
 
         // Take string location, plug it into geocoding api
         fetch(`${geocodingAPIURL}${event.location.replace(' ', '+')}`, { method: "GET" }).then((data) => {
+            console.log(`Data: ${JSON.stringify(data)}`);
             return data.json();
         }).then((locationData) => {
+            console.log(`LOCATION DATA: ${JSON.stringify(locationData)}`);
             // Check to make sure that the location is valid (has all of the basic fields).
             if (locationData.results.locations[0].street === "" && locationData.results.locations[0].adminArea6 === "" && locationData.results.locations[0].adminArea5 === "" && locationData.results.locations[0].adminArea4 !== "" && locationData.results.locations[0].adminArea3 === "") {
 
