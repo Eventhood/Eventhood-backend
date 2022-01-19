@@ -349,7 +349,7 @@ app.post('/api/eventcategories', (req, res) => {
 
             res.status(201).json({ message: `The event category was successfully saved.`, data: category });
 
-        }).catch((err) => { res.status(500).json({ error: err }); });
+        }).catch((err) => { res.status(200).json({ error: err }); });
 
     }
 });
