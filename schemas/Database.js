@@ -752,7 +752,7 @@ module.exports.addEvent = (eventData) => {
 module.exports.createEventCategory = (categoryData) => {
 
     return new Promise((resolve, reject) => {
-        let category = new EventCategories(categoryDetails);
+        let category = new EventCategories(categoryData);
         category.save((err) => {
             if (err) {
                 if (err.code === 11000) {
