@@ -269,7 +269,7 @@ app.post('/api/events', (req, res) => {
             console.log(`Data: ${JSON.stringify(data)}`);
             return data.json();
         }).then((locationData) => {
-            console.log(`LOCATION DATA: ${JSON.stringify(locationData)}`);
+            console.log(`LOCATION DATA: ${JSON.stringify(locationData.results[0])}`);
             // Check to make sure that the location is valid (has all of the basic fields).
             if (locationData.results[0].locations[0].street === "" && locationData.results[0].locations[0].adminArea6 === "" && locationData.results[0].locations[0].adminArea5 === "" && locationData.results[0].locations[0].adminArea4 !== "" && locationData.results[0].locations[0].adminArea3 === "") {
 
@@ -279,8 +279,8 @@ app.post('/api/events', (req, res) => {
             else {
                 // Store geocoding result to variable
                 let lData = {
-                    lat: locationData.results.locations[0].latLng.lat,
-                    lon: locationData.results.locations[0].latLng.lng
+                    lat: locationData.results[0].locations[0].latLng.lat,
+                    lon: locationData.results[0].locations[0].latLng.lng
                 }
 
                 // Update eventData location to have the lat and long
