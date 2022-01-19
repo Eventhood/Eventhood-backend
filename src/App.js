@@ -271,7 +271,7 @@ app.post('/api/events', (req, res) => {
         }).then((locationData) => {
             console.log(`LOCATION DATA: ${JSON.stringify(locationData)}`);
             // Check to make sure that the location is valid (has all of the basic fields).
-            if (locationData.results.locations[0].street === "" && locationData.results.locations[0].adminArea6 === "" && locationData.results.locations[0].adminArea5 === "" && locationData.results.locations[0].adminArea4 !== "" && locationData.results.locations[0].adminArea3 === "") {
+            if (locationData.results[0].locations[0].street === "" && locationData.results[0].locations[0].adminArea6 === "" && locationData.results.locations[0].adminArea5 === "" && locationData.results.locations[0].adminArea4 !== "" && locationData.results.locations[0].adminArea3 === "") {
 
                 res.status(400).json({ error: `The location provided could not be found.` });
 
