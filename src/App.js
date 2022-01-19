@@ -344,12 +344,12 @@ app.get('/api/events/user/:id', (req, res) => {
 app.post('/api/eventcategories', (req, res) => {
     if (!req.body.categoryData) { res.status(400).json({ error: `Category data must be provided.` }); }
     else {
-
+        console.log(`Data exists`);
         Database.createEventCategory(req.body.categoryData).then((category) => {
-
+            console.log(`Data added.`);
             res.status(201).json({ message: `The event category was successfully saved.`, data: category });
 
-        }).catch((err) => { res.status(200).json({ error: err }); });
+        }).catch((err) => { console.log(`error: ${err}`); res.status(500).json({ error: err }); });
 
     }
 });
