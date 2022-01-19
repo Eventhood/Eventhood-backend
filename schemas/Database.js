@@ -750,7 +750,14 @@ module.exports.getSingleEventbyEventID = (eventID) => {
 module.exports.addEvent = (eventData) => {
     
     return new Promise((resolve, reject) => {
-        let newEvent = new Events(eventData)
+        let newEvent = new Events(eventData);
+        newEvent.save((err) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(newEvent);
+            }
+        })
     })
 }
 
