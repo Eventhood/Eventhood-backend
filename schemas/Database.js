@@ -1,3 +1,4 @@
+const e = require('express');
 const { is } = require('express/lib/request');
 const res = require('express/lib/response');
 const mongoose = require('mongoose');
@@ -97,6 +98,28 @@ let contactRequestsSchema = new Schema({
         type: Date,
         required: false,
         default: Date.now()
+    },
+    requestOpen: {
+        type: Boolean,
+        required: false,
+        default: true
+    },
+    handlingStaff: {
+        claimed: {
+            type: Boolean,
+            required: false,
+            default: false
+        },
+        name: {
+            type: String,
+            required: false,
+            default: null
+        },
+        email: {
+            type: String,
+            required: false,
+            default: null
+        }
     }
 });
 
@@ -191,7 +214,8 @@ let eventReportsSchema = new Schema({
 let reportTopicsSchema = new Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     }
 });
 
@@ -813,6 +837,35 @@ module.exports.getAllEventCategories = () => {
 
 // Event Report Functions
 // Report Topic Functions
+module.exports.addReportTopic = (topicData) => {
+
+    return new Promise((resolve, reject) => {
+        let topic = new ReportTopics(topicData);
+        topic.save((err) => {
+            if (err) {
+                if (err.code === 11000) {
+                    reject(`There is already a report topic with this name.`);
+                } else {
+                    reject(`There was a problem saving the report topic provided.`);
+                }
+            } else {
+                resolve(topic);
+            }
+        })
+    });
+
+}
+
+module.exports.getReportTopics = () => {
+    return new Promise((resolve, reject) => {
+        ReportTopics.find({}).sort('name').exec().then((topics) => {
+            resolve(topics);
+        }).catch(err => {
+            reject(err);
+        });
+    });
+}
+
 // FAQ Topic Functions
 // FAQ Question Functions
 // Event Registration Functions

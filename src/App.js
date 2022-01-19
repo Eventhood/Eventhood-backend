@@ -344,12 +344,10 @@ app.get('/api/events/user/:id', (req, res) => {
 app.post('/api/eventcategories', (req, res) => {
     if (!req.body.categoryData) { res.status(400).json({ error: `Category data must be provided.` }); }
     else {
-        console.log(`Data exists`);
         Database.createEventCategory(req.body.categoryData).then((category) => {
-            console.log(`Data added.`);
             res.status(201).json({ message: `The event category was successfully saved.`, data: category });
 
-        }).catch((err) => { console.log(`error: ${err}`); res.status(500).json({ error: err }); });
+        }).catch((err) => { res.status(500).json({ error: err }); });
 
     }
 });
@@ -377,6 +375,32 @@ app.get('/api/eventcategories/:id', (req, res) => {
     }).catch((err) => { res.status(500).json({ error: err  }); });
 
 });
+
+    // Event Report Routes
+    // Event Report Topic Routes
+// Add a new event report topic to the database.
+app.post('/api/reporttopics', (req, res) => {
+    if (!req.body.topicData) { res.status(400).json({ error: `Report topic data must be provided.` }); }
+    else {
+        Database.addReportTopic(req.body.topicData).then((topic) => {
+            res.status(201).json({ message: `The report topic was successfully saved.`, data: topic });
+        }).catch((err) => {
+            res.status(500).json({ message: err });
+        });
+    }
+});
+
+// Get all event report topics in the database.
+app.get('/api/reporttopics', (req, res) => {
+    Database.getReportTopics().then((topics) => {
+        if (topics.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all report topics.`, data: topics });
+        }
+        else {
+            res.status(404).json({ message: `There are currently no report topics saved in the database.` });
+        }
+    })
+})
 
 // Connect to the database and start the server if successful.
 const PORT = process.env.PORT || 8080;
