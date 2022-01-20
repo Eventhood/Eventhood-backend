@@ -437,7 +437,33 @@ app.get('/api/reporttopics', (req, res) => {
             res.status(404).json({ message: `There are currently no report topics saved in the database.` });
         }
     })
-})
+});
+
+    // Event Registration Routes
+// Create a new event registration.
+app.post('/api/eventregistrations', (req, res) => {
+    if (!req.body.registrationData) { res.status(400).json({ error: `Event registration data must be provided.` }); }
+    else {
+
+        Database.addEventRegistration(req.body.registrationData).then((registration) => {
+            res.status(201).json({ message: `Successfull saved the event registration.`, data: registration });
+        }).catch(err => res.status(500).json({ error: err }));
+
+    }
+});
+
+// Get all event registrations by user.
+app.get('/api/eventregistrations/user/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.getAllUserRegisteredEvents(id).then((registrations) => {
+        if (registrations.length > 0) {
+            res.status(200).json({ message: `Successfully found all registered events for the provided user.`, data: registrations });
+        } else { res.status(404).json({ message: `The provided user has not registered for any events.` }); }
+    }).catch(err => res.status(500).json({ error: err }));
+});
+
+// Get all event registrations by event.
 
 // Connect to the database and start the server if successful.
 const PORT = process.env.PORT || 8080;
