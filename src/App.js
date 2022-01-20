@@ -11,6 +11,7 @@ app.use(express.json());
 dotenv.config();
 
 const Database = require('../schemas/Database');
+const e = require("express");
 
 const geocodingAPIURL = process.env.GEOCODE_API
 
@@ -57,6 +58,14 @@ app.get('/api/users/:uuid', (req, res) => {
         res.status(500).json({ error: err });
     })
 
+});
+
+// Get all users.
+app.get('/api/users', (req, res) => {
+    Database.getUsers().then((users) => {
+        if (users.length > 0) { res.status(200).json({ message: `Successfully retrieved all users.`, data: users }); }
+        else { res.status(404).json({ message: `There are currently no registered users.` }); }
+    }).catch(err => res.status(500).json({ error: err }) );
 });
 
     // Follow Routes

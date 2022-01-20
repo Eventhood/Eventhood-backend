@@ -410,6 +410,15 @@ module.exports.getUserById = (targetUuid) => {
 
 };
 
+// Get all users
+module.exports.getUsers = () => {
+    return new Promise((resolve, reject) => {
+        Users.find({}, [ 'displayName', 'accountHandle' ]).sort('accountHandle').exec().then((users) => {
+            resolve(users);
+        }).catch(err => reject(err));
+    })
+}
+
 // Follow Functions
 /**
  * Get all of the follows where the user with the specified Mongo id matches the "followedBy" property.
