@@ -11,7 +11,6 @@ app.use(express.json());
 dotenv.config();
 
 const Database = require('../schemas/Database');
-const e = require("express");
 
 const geocodingAPIURL = process.env.GEOCODE_API
 
@@ -380,6 +379,32 @@ app.get('/api/eventcategories/:id', (req, res) => {
 });
 
     // Event Report Routes
+// Save a new event report into the database.
+app.post('/api/eventreports', (req, res) => {
+    if (!req.body.reportData) {
+        res.status(400).json({ error: `Report data must be provided.` });
+    } else {
+
+        Database.addEventReport(req.body.reportData).then((report) => {
+            res.status(201).json({ message: `Successfully saved the provided report.`, data: report });
+        }).catch((err) => {
+            res.status(500).json({ error: err });
+        });
+
+    }
+});
+
+// Get all event reports
+app.get('/api/eventreports', (req, res) => {
+    Database.getEventReports().then((reports) => {
+        if (reports.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all event reports.`, data: reports });
+        } else {
+            res.status(404).json({ message: `There are currently no event reports.` });
+        }
+    }).catch(err => { res.status(500).json({ error: err }); });
+});
+
     // Event Report Topic Routes
 // Add a new event report topic to the database.
 app.post('/api/reporttopics', (req, res) => {

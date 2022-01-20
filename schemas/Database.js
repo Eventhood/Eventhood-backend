@@ -23,6 +23,10 @@ let userSchema = new Schema({
         type: String,
         required: true
     },
+    email: {
+        type: String,
+        required: true
+    },
     creationTime: {
         type: Date,
         required: true
@@ -170,7 +174,7 @@ let eventsSchema = new Schema({
     },
     startTime: {
         type: Date,
-        required: true
+        required: true,
     }
 });
 
@@ -207,6 +211,16 @@ let eventReportsSchema = new Schema({
     reason: {
         type: String,
         required: true
+    },
+    handled: {
+        type: Boolean,
+        required: false,
+        default: false
+    },
+    reportDate: {
+        type: Date,
+        required: false,
+        default: Date.now()
     }
 });
 
@@ -223,7 +237,8 @@ let reportTopicsSchema = new Schema({
 let FAQTopicsSchema = new Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     }
 });
 
@@ -236,7 +251,8 @@ let FAQQuestionsSchema = new Schema({
     },
     question: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     answer: {
         type: String,
@@ -753,7 +769,7 @@ module.exports.addEvent = (eventData) => {
         let newEvent = new Events(eventData);
         newEvent.save((err) => {
             if (err) {
-                reject(err);
+                reject(err)
             } else {
                 resolve(newEvent);
             }
@@ -762,9 +778,28 @@ module.exports.addEvent = (eventData) => {
 }
 
 // Update event
+module.exports.updateEvent = (eventID, hostID, eventData) => {
+
+    //Only host should be able to update their own Event
+    return new Promise((resolve,reject) => {
+        Events.updateOne({host: hostID, _id: eventID}, {$set: eventData}).exec().then((updatedEvent) =>{
+            resolve(updatedEvent)
+        }).catch((err) => {
+            reject(err);
+        })
+    })
+}
 
 // Delete event 
-
+module.exports.deleteEvent = (eventID) => {
+    return new Promise((resolve, reject) => {
+        Events.deleteOne({_id: eventID}).exec().then(() =>{
+            resolve(`The event has been successfully removed.`)
+        }).catch((err) =>{
+            reject(err)
+        })
+    })
+}
 //----------------------------------------------------------------------------------
 
 
@@ -843,6 +878,33 @@ module.exports.getAllEventCategories = () => {
 }
 
 // Event Report Functions
+// Create a new Event Report
+module.exports.addEventReport = (reportData) => {
+    return new Promise((resolve, reject) => {
+        let report = new EventReports(reportData);
+        report.save(err => {
+            if (err) { reject(`There was a problem saving the report.`); }
+            else { resolve(report); }
+        });
+    });
+}
+
+// Get all event reports
+module.exports.getEventReports = () => {
+    return new Promise((resolve, reject) => {
+        EventReports.find({}).sort('reportDate').populate('event').populate('reportedBy', [ 'displayName', 'accountHandle', 'photoURL', 'email' ]).populate('topic').exec().then((reports) => {
+            resolve(reports);
+        }).catch(err => {
+            reject(err);
+        });
+    });
+}
+
+// Get all unhandled event reports.
+// Get all handled event reports.
+// Get all reports based on user.
+// Get all reports based on event.
+
 // Report Topic Functions
 module.exports.addReportTopic = (topicData) => {
 
@@ -874,5 +936,126 @@ module.exports.getReportTopics = () => {
 }
 
 // FAQ Topic Functions
+module.exports.getFAQTopics = () => {
+    return new Promise((resolve, reject) => {
+        FAQTopics.find({}).sort('name').exec().then((faqTopics) => {
+            resolve(faqTopics)
+        }).catch(err => {
+            reject(err)
+        })
+    })
+}
+
+module.exports.addFAQTopics = (newFAQTopic) => {
+
+    return new Promise((resolve, reject) => {
+        let addFAQTopic = new FAQTopics(newFAQTopic)
+        addFAQTopic.save((err) =>{
+            if(err) {
+                if (err.code == 11000) {
+                    reject(`The FAQ Topic already exists.`)
+                } else {
+                    reject(`There was an error saving the FAQ Topic.`)
+                }
+            } else {
+                resolve (addFAQTopic)
+            }
+        })
+    })
+}
+
+module.exports.deleteFAQTopics = (FAQTopicID) => {
+    return new Promise((resolve, reject) => {
+        FAQTopics.deleteOne({_id: FAQTopicID}).exec().then(() => {
+            resolve(`The FAQ Topic has been succesfully removed.`)
+        }).catch((err) => {
+            reject(err)
+        })
+    })
+}
 // FAQ Question Functions
+
+module.exports.getAllFAQQuestions = () =>{
+    return new Promise((resolve, reject) => {
+        FAQQuestions.find({}).sort('question').populate('topic').exec().then((AllFAQQuestions) => {
+            resolve(AllFAQQuestions)
+        }).catch(err => {
+            reject(err);
+        })
+    })
+}
+
+module.exports.addFAQQuestion = (newFAQQuestion) =>{
+    return new Promise ((resolve, reject) => {
+        let addNewFAQQuestion = FAQQuestions(newFAQQuestion)
+        addNewFAQQuestion.save(err =>{
+            if(err){
+                if (err.code == 11000) {
+                    reject(`The FAQ Question already exists.`)
+                } else {
+                    reject(`There was an error saving the FAQ Question.`)
+                }
+            }else {
+                resolve(addNewFAQQuestion)
+            }
+        })
+    })
+}
+
+module.exports.updateFAQQuestion = (FAQQuestionID, newFAQQuestion) => {
+    return new Promise((resolve, reject) =>{
+        FAQQuestions.updateOne({_id: FAQQuestionID}, {$set: newFAQQuestion}).exec().then((updateFAQQuestion) => {
+            resolve(updateFAQQuestion);
+        }).catch((err) =>{
+            reject(err);
+        })
+    })
+}
+
+module.exports.deleteFAQQuestion = (FAQQuestionID) => {
+    return new Promise((resolve, reject) => {
+        FAQQuestionID.deleteOne({_id : FAQQuestionID}).exec().then(() =>{
+            resolve(`The FAQ Question has been removed.`)
+        }).catch((err) => {
+            reject(err)
+        })
+    })
+}
+
 // Event Registration Functions
+
+//Get all events that user has registered for
+module.exports.getAllUserRegisteredEvents = (uID) => {
+    return new Promise((resolve, reject) => {
+        EventRegistrations.find({user: uID}).exec().then((registeredEvents) => {
+            resolve(registeredEvents)
+        }).catch((err) => {
+            reject(err)
+        })
+    })
+}
+
+//Register User to an event 
+module.exports.addEventRegistration = (registrationData) => {
+    return new Promise((resolve, reject) => {
+        let registration = new EventRegistrations(registrationData);
+        registration.save((err) => {
+            if (err) {
+                reject(`There was a problem saving the event registration.`);
+            } else {
+                resolve(registration);
+            }
+        });
+    });
+}
+
+//Remove User from an Event
+module.exports.deleteEventRegistration = (registrationId) => {
+    return new Promise((resolve, reject) => {
+        EventRegistrations.deleteOne({ _id: registrationId }).exec().then(() => {
+            resolve(`Successfully removed the event registration.`);
+        }).catch((err) => {
+            reject(`There was a problem removing the registration. Please try again.`);
+        })
+    })
+}
