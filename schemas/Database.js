@@ -1,6 +1,3 @@
-const e = require('express');
-const { is } = require('express/lib/request');
-const res = require('express/lib/response');
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 

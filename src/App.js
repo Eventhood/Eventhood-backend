@@ -465,6 +465,91 @@ app.get('/api/eventregistrations/user/:id', (req, res) => {
 
 // Get all event registrations by event.
 
+//-----FAQ Topics------
+// Get all FAQ Topic Route
+app.get('/api/FAQTopics',(req,res) => {
+    Database.getFAQTopics().then((FAQtopics) => {
+        if (FAQtopics.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all FAQ topics.`, data: FAQtopics });
+        }
+        else {
+            res.status(404).json({ message: `There are currently no FAQ topics saved in the database.` });
+        }
+    })
+})
+// Add all FAQ Topic Route 
+app.post('/api/FAQTopics',(req,res) => {
+    if (!req.body.faqTopicData) {
+         res.status(400).json({ error: `FAQ topic data must be provided.` });
+        }
+    else {
+
+        Database.addFAQTopics(req.body.faqTopicData).then((FAQtopic) => {
+            res.status(201).json({ message: `Successfull saved the new FAQ Topic.`, data: FAQtopic });
+        }).catch(err => res.status(500).json({ error: err }));
+
+    }
+})
+// Delete all FAQ Topic Route
+app.delete('/api/FAQTopics/:id', (req, res) =>{
+    const { id } = req.params;
+
+    Database.deleteFAQTopics(id).then((data) => {
+        res.status(200).json({ message: data });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
+//-----FAQ Questions------
+// Get All FAQ Questiosn
+app.get('/api/FAQQuestions',(req,res) => {
+    Database.getAllFAQQuestions().then((FAQQuestions) => {
+        if (FAQQuestions.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all FAQ Questions.`, data: FAQQuestions });
+        }
+        else {
+            res.status(404).json({ message: `There are currently no FAQ Questions saved in the database.` });
+        }
+    })
+})
+// Add FAQ Question
+app.post('/api/FAQQuestions', (req,res) =>{
+    if (!req.body.faqQuestionData) {
+        res.status(400).json({ error: `FAQ Question data must be provided.` });
+       }
+   else {
+
+       Database.addFAQQuestion(req.body.faqQuestionData).then((FAQQuestions) => {
+           res.status(201).json({ message: `Successfully saved the new FAQ Question.`, data: FAQQuestions });
+       }).catch(err => res.status(500).json({ error: err }));
+
+   }
+})
+// Update FAQ Question
+app.post('/api/FAQQuestions/update/:id', (req,res) => {
+    if (!req.body.faqQuestionData) {
+        res.status(400).json({ error: `Updated FAQ Question data must be provided.` });
+       }
+   else {
+
+       Database.updateFAQQuestion(req.body.faqQuestionData).then((FAQQuestions) => {
+           res.status(201).json({ message: `Successfully updated the new FAQ Question.`, data: FAQQuestions });
+       }).catch(err => res.status(500).json({ error: err }));
+
+   }
+})
+
+// Delete FAQ Question
+app.delete('/api/FAQQuestions/:id', (req, res) =>{
+    const { id } = req.params;
+    Database.deleteFAQQuestion(id).then((data) => {
+        res.status(200).json({ message: data });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
 // Connect to the database and start the server if successful.
 const PORT = process.env.PORT || 8080;
 var dbURL = process.env.MONGO_URL;
