@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const fetch = require('node-fetch');
 
 const app = express();
 app.use(cors());
@@ -10,6 +11,9 @@ app.use(express.json());
 dotenv.config();
 
 const Database = require('../schemas/Database');
+const e = require("express");
+
+const geocodingAPIURL = process.env.GEOCODE_API
 
 // Listen to API routes.
 app.get("/", (req, res) => {
@@ -54,6 +58,14 @@ app.get('/api/users/:uuid', (req, res) => {
         res.status(500).json({ error: err });
     })
 
+});
+
+// Get all users.
+app.get('/api/users', (req, res) => {
+    Database.getUsers().then((users) => {
+        if (users.length > 0) { res.status(200).json({ message: `Successfully retrieved all users.`, data: users }); }
+        else { res.status(404).json({ message: `There are currently no registered users.` }); }
+    }).catch(err => res.status(500).json({ error: err }) );
 });
 
     // Follow Routes
@@ -246,6 +258,293 @@ app.get('/api/supporttopics/:id', (req, res) => {
         else {
             res.status(404).json({ message: `The requested contact request topic could not be found.` });
         }
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
+    // Event Routes
+// Add an event to the database.
+app.post('/api/events', (req, res) => {
+
+    if (!req.body.eventData) { res.status(400).json({ error: `Event data must be provided.` }); }
+    else {
+
+        let event = req.body.eventData;
+
+        // Take string location, plug it into geocoding api
+        fetch(`${geocodingAPIURL}${event.location.replace(' ', '+')}`, { method: "GET" }).then((data) => {
+            console.log(`Data: ${JSON.stringify(data)}`);
+            return data.json();
+        }).then((locationData) => {
+            console.log(`LOCATION DATA: ${JSON.stringify(locationData.results[0])}`);
+            // Check to make sure that the location is valid (has all of the basic fields).
+            if (locationData.results[0].locations[0].street === "" && locationData.results[0].locations[0].adminArea6 === "" && locationData.results[0].locations[0].adminArea5 === "" && locationData.results[0].locations[0].adminArea4 !== "" && locationData.results[0].locations[0].adminArea3 === "") {
+
+                res.status(400).json({ error: `The location provided could not be found.` });
+
+            }
+            else {
+                // Store geocoding result to variable
+                let lData = {
+                    lat: locationData.results[0].locations[0].latLng.lat,
+                    lon: locationData.results[0].locations[0].latLng.lng
+                }
+
+                // Update eventData location to have the lat and long
+                event.location = lData;
+
+                // Pass the updated eventData to the addEvent function.
+                Database.addEvent(event).then(savedEvent => {
+                    res.status(201).json({ message: `The event was successfully registered.`, data: savedEvent });
+                }).catch((err) => {
+                    res.status(500).json({ error: err });
+                });
+            }
+
+        }).catch((err) => {
+            console.log(`ERROR: ${err}`);
+            res.status(500).json({ error: err });
+        });
+
+    }
+
+});
+
+// Get all events from the database.
+app.get('/api/events', (req, res) => {
+
+    Database.getAllEvents().then((events) => {
+        if (events.length > 0) {
+            res.status(200).json({ message: `Successfully found all events.`, data: events });
+        } else { res.status(404).json({ message: `There are no events currently in the database.` }); }
+    }).catch((err) => { res.status(500).json({ error: err }); });
+
+});
+
+// Get event by event ObjectId (_id).
+app.get('/api/events/single/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.getSingleEventbyEventID(id).then((event) => {
+
+        res.status(200).json({ message: `Successfully found the requested event.`, data: event });
+
+    }).catch(err => { res.status(500).json({ error: err }); });
+});
+
+// Get all events by host ObjectId (_id).
+app.get('/api/events/user/:id', (req, res) => {
+
+    const { id } = req.params;
+
+    Database.getAllEventsbyUserID(id).then((events) => {
+        if (events.length > 0) {
+            res.status(200).json({ message: `Successfully found all events hosted by the specified user.`, data: events });
+        } else {
+            res.status(404).json({ message: `The specified user has no hosted events.` });
+        }
+    }).catch(err => {
+        res.status(500).json({ error: err });
+    });
+
+});
+
+    // EventCategory Routes
+// Add an event category to the database.
+app.post('/api/eventcategories', (req, res) => {
+    if (!req.body.categoryData) { res.status(400).json({ error: `Category data must be provided.` }); }
+    else {
+        Database.createEventCategory(req.body.categoryData).then((category) => {
+            res.status(201).json({ message: `The event category was successfully saved.`, data: category });
+
+        }).catch((err) => { res.status(500).json({ error: err }); });
+
+    }
+});
+
+// Get all event categories from the database.
+app.get('/api/eventcategories', (req, res) => {
+    
+    Database.getAllEventCategories().then((categories) => {
+        if (categories.length > 0) {
+            res.status(200).json({ message: `Successfully got all event categories.`, data: categories });
+        } else {
+            res.status(404).json({ message: `There are currently no saved event categories.` });
+        }
+    }).catch(err => { res.status(500).json({ error: err }); });
+
+});
+
+// Get a single event category by it's ObjectId (_id).
+app.get('/api/eventcategories/:id', (req, res) => {
+
+    const { id } = req.params;
+
+    Database.getEventCategoryById(id).then((category) => {
+        res.status(200).json({ message: `Successfully retrieved the requested event category.`, data: category });
+    }).catch((err) => { res.status(500).json({ error: err  }); });
+
+});
+
+    // Event Report Routes
+// Save a new event report into the database.
+app.post('/api/eventreports', (req, res) => {
+    if (!req.body.reportData) {
+        res.status(400).json({ error: `Report data must be provided.` });
+    } else {
+
+        Database.addEventReport(req.body.reportData).then((report) => {
+            res.status(201).json({ message: `Successfully saved the provided report.`, data: report });
+        }).catch((err) => {
+            res.status(500).json({ error: err });
+        });
+
+    }
+});
+
+// Get all event reports
+app.get('/api/eventreports', (req, res) => {
+    Database.getEventReports().then((reports) => {
+        if (reports.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all event reports.`, data: reports });
+        } else {
+            res.status(404).json({ message: `There are currently no event reports.` });
+        }
+    }).catch(err => { res.status(500).json({ error: err }); });
+});
+
+    // Event Report Topic Routes
+// Add a new event report topic to the database.
+app.post('/api/reporttopics', (req, res) => {
+    if (!req.body.topicData) { res.status(400).json({ error: `Report topic data must be provided.` }); }
+    else {
+        Database.addReportTopic(req.body.topicData).then((topic) => {
+            res.status(201).json({ message: `The report topic was successfully saved.`, data: topic });
+        }).catch((err) => {
+            res.status(500).json({ message: err });
+        });
+    }
+});
+
+// Get all event report topics in the database.
+app.get('/api/reporttopics', (req, res) => {
+    Database.getReportTopics().then((topics) => {
+        if (topics.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all report topics.`, data: topics });
+        }
+        else {
+            res.status(404).json({ message: `There are currently no report topics saved in the database.` });
+        }
+    })
+});
+
+    // Event Registration Routes
+// Create a new event registration.
+app.post('/api/eventregistrations', (req, res) => {
+    if (!req.body.registrationData) { res.status(400).json({ error: `Event registration data must be provided.` }); }
+    else {
+
+        Database.addEventRegistration(req.body.registrationData).then((registration) => {
+            res.status(201).json({ message: `Successfull saved the event registration.`, data: registration });
+        }).catch(err => res.status(500).json({ error: err }));
+
+    }
+});
+
+// Get all event registrations by user.
+app.get('/api/eventregistrations/user/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.getAllUserRegisteredEvents(id).then((registrations) => {
+        if (registrations.length > 0) {
+            res.status(200).json({ message: `Successfully found all registered events for the provided user.`, data: registrations });
+        } else { res.status(404).json({ message: `The provided user has not registered for any events.` }); }
+    }).catch(err => res.status(500).json({ error: err }));
+});
+
+// Get all event registrations by event.
+
+//-----FAQ Topics------
+// Get all FAQ Topic Route
+app.get('/api/FAQTopics',(req,res) => {
+    Database.getFAQTopics().then((FAQtopics) => {
+        if (FAQtopics.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all FAQ topics.`, data: FAQtopics });
+        }
+        else {
+            res.status(404).json({ message: `There are currently no FAQ topics saved in the database.` });
+        }
+    })
+})
+// Add all FAQ Topic Route 
+app.post('/api/FAQTopics',(req,res) => {
+    if (!req.body.faqTopicData) {
+         res.status(400).json({ error: `FAQ topic data must be provided.` });
+        }
+    else {
+
+        Database.addFAQTopics(req.body.faqTopicData).then((FAQtopic) => {
+            res.status(201).json({ message: `Successfull saved the new FAQ Topic.`, data: FAQtopic });
+        }).catch(err => res.status(500).json({ error: err }));
+
+    }
+})
+// Delete all FAQ Topic Route
+app.delete('/api/FAQTopics/:id', (req, res) =>{
+    const { id } = req.params;
+
+    Database.deleteFAQTopics(id).then((data) => {
+        res.status(200).json({ message: data });
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
+//-----FAQ Questions------
+// Get All FAQ Questiosn
+app.get('/api/FAQQuestions',(req,res) => {
+    Database.getAllFAQQuestions().then((FAQQuestions) => {
+        if (FAQQuestions.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all FAQ Questions.`, data: FAQQuestions });
+        }
+        else {
+            res.status(404).json({ message: `There are currently no FAQ Questions saved in the database.` });
+        }
+    })
+})
+// Add FAQ Question
+app.post('/api/FAQQuestions', (req,res) =>{
+    if (!req.body.faqQuestionData) {
+        res.status(400).json({ error: `FAQ Question data must be provided.` });
+       }
+   else {
+
+       Database.addFAQQuestion(req.body.faqQuestionData).then((FAQQuestions) => {
+           res.status(201).json({ message: `Successfully saved the new FAQ Question.`, data: FAQQuestions });
+       }).catch(err => res.status(500).json({ error: err }));
+
+   }
+})
+// Update FAQ Question
+app.post('/api/FAQQuestions/update/:id', (req,res) => {
+    if (!req.body.faqQuestionData) {
+        res.status(400).json({ error: `Updated FAQ Question data must be provided.` });
+       }
+   else {
+
+       Database.updateFAQQuestion(req.body.faqQuestionData).then((FAQQuestions) => {
+           res.status(201).json({ message: `Successfully updated the new FAQ Question.`, data: FAQQuestions });
+       }).catch(err => res.status(500).json({ error: err }));
+
+   }
+})
+
+// Delete FAQ Question
+app.delete('/api/FAQQuestions/:id', (req, res) =>{
+    const { id } = req.params;
+    Database.deleteFAQQuestion(id).then((data) => {
+        res.status(200).json({ message: data });
     }).catch((err) => {
         res.status(500).json({ error: err });
     });

@@ -1,4 +1,3 @@
-const res = require('express/lib/response');
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -18,6 +17,10 @@ let userSchema = new Schema({
         required: true
     },
     photoURL: {
+        type: String,
+        required: true
+    },
+    email: {
         type: String,
         required: true
     },
@@ -96,6 +99,28 @@ let contactRequestsSchema = new Schema({
         type: Date,
         required: false,
         default: Date.now()
+    },
+    requestOpen: {
+        type: Boolean,
+        required: false,
+        default: true
+    },
+    handlingStaff: {
+        claimed: {
+            type: Boolean,
+            required: false,
+            default: false
+        },
+        name: {
+            type: String,
+            required: false,
+            default: null
+        },
+        email: {
+            type: String,
+            required: false,
+            default: null
+        }
     }
 });
 
@@ -120,8 +145,14 @@ let eventsSchema = new Schema({
         required: true
     },
     location: {
-        type: String,
-        required: true
+        lat: {
+            type: Number,
+            required: true
+        },
+        lon: {
+            type: Number,
+            required: true
+        }
     },
     category: {
         type: Schema.Types.ObjectId,
@@ -140,13 +171,18 @@ let eventsSchema = new Schema({
     },
     startTime: {
         type: Date,
-        required: true
+        required: true,
     }
 });
 
 // SRS 5.1.2.7 - 'EventCategories' Collection
 let eventCategoriesSchema = new Schema({
     name: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    header: {
         type: String,
         required: true
     }
@@ -172,6 +208,16 @@ let eventReportsSchema = new Schema({
     reason: {
         type: String,
         required: true
+    },
+    handled: {
+        type: Boolean,
+        required: false,
+        default: false
+    },
+    reportDate: {
+        type: Date,
+        required: false,
+        default: Date.now()
     }
 });
 
@@ -179,7 +225,8 @@ let eventReportsSchema = new Schema({
 let reportTopicsSchema = new Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     }
 });
 
@@ -187,7 +234,8 @@ let reportTopicsSchema = new Schema({
 let FAQTopicsSchema = new Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     }
 });
 
@@ -200,7 +248,8 @@ let FAQQuestionsSchema = new Schema({
     },
     question: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     answer: {
         type: String,
@@ -357,6 +406,15 @@ module.exports.getUserById = (targetUuid) => {
     });
 
 };
+
+// Get all users
+module.exports.getUsers = () => {
+    return new Promise((resolve, reject) => {
+        Users.find({}, [ 'displayName', 'accountHandle' ]).sort('accountHandle').exec().then((users) => {
+            resolve(users);
+        }).catch(err => reject(err));
+    })
+}
 
 // Follow Functions
 /**
@@ -665,10 +723,345 @@ module.exports.getAllContactTopics = () => {
 
 };
 
-// Event Functions
-// Event Category Functions
+// Event Functions:
+
+// Return all events
+/**
+ * Get all of the events in the Mongo Database
+ * 
+ * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, host: Object, name: String, 
+ *                  location: String, category: Object, maxParticipants: Number, description: String, startTime: Date }]>} 
+ *      An array of all Events in the Mongo database, if the Promise resolution is successful.
+ */
+module.exports.getAllEvents = () => {
+   
+    return new Promise((resolve, reject)=> {
+        Events.find({}).sort('name').populate('category').populate('host', ['accountHandle']).exec().then(events => {
+            resolve(events);
+        }).catch(err => {
+            reject(err);
+        })
+    })
+};
+
+// Return all events based on UserID
+module.exports.getAllEventsbyUserID = (userID) => {
+    
+    return new Promise((resolve, reject) => {
+        Events.find({host: userID}).sort('name').populate('category').populate('host', [ 'accountHandle' ]).exec().then(events => {
+            resolve(events);
+        }).catch(err => {
+            reject(err);
+        })
+    })
+}
+
+// Get Single Event based on EventId (Event: _id) - Event Details basically 
+module.exports.getSingleEventbyEventID = (eventID) => {
+
+    return new Promise((resolve, reject) => {
+        Events.findOne({_id: eventID}).populate('category').populate('host', ['accountHandle']).exec().then(events => {
+            resolve(events);
+        }).catch(err => {
+            reject(err);
+        })
+    })
+}
+
+// Create event
+module.exports.addEvent = (eventData) => {
+    
+    return new Promise((resolve, reject) => {
+        let newEvent = new Events(eventData);
+        newEvent.save((err) => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(newEvent);
+            }
+        })
+    })
+}
+
+// Update event
+module.exports.updateEvent = (eventID, hostID, eventData) => {
+
+    //Only host should be able to update their own Event
+    return new Promise((resolve,reject) => {
+        Events.updateOne({host: hostID, _id: eventID}, {$set: eventData}).exec().then((updatedEvent) =>{
+            resolve(updatedEvent)
+        }).catch((err) => {
+            reject(err);
+        })
+    })
+}
+
+// Delete event 
+module.exports.deleteEvent = (eventID) => {
+    return new Promise((resolve, reject) => {
+        Events.deleteOne({_id: eventID}).exec().then(() =>{
+            resolve(`The event has been successfully removed.`)
+        }).catch((err) =>{
+            reject(err)
+        })
+    })
+}
+//----------------------------------------------------------------------------------
+
+
+// Event Category Functions - CUD (get all, create, update, delete)
+/**
+ * Save the provided event category data into the Mongo database.
+ * 
+ * @param {{
+ *  name: String
+ * }} categoryData The category data to be saved to the database.
+ * @returns {Promise<{
+ *  _id: import('mongoose').ObjectId,
+ *  name: String
+ * }>} The Mongo document that was saved to the database, if the Promise resolution was successful.
+ */
+module.exports.createEventCategory = (categoryData) => {
+
+    return new Promise((resolve, reject) => {
+        let category = new EventCategories(categoryData);
+        category.save((err) => {
+            if (err) {
+                if (err.code === 11000) {
+                    reject(`There is already a category with that name.`);
+                }
+                else {
+                    reject(`There was a problem saving the category.`);
+                }
+            }
+            else {
+
+                resolve(category);
+
+            }
+        });
+    });
+
+};
+
+/**
+ * Find a specific event category by it's Mongo ObjectId (_id).
+ * 
+ * @param {String} categoryId The ObjectId of the desired EventCategory document.
+ * @returns { Promise<{
+ *  _id: import('mongoose').ObjectId,
+ *  name: String,
+ *  header: String
+ * }> } The Mongo document for the EventCategory, if Promise resolution is successful.
+ */
+module.exports.getEventCategoryById = (categoryId) => {
+
+    return new Promise((resolve, reject) => {
+
+        EventCategories.findOne({ _id: categoryId }).exec().then((category) => {
+            resolve(category);
+        }).catch((err) => { reject(err); })
+
+    });
+
+};
+
+/**
+ * Get all of the currently-existing EventCategories in the Mongo database.
+ * 
+ * @returns { Promise<[{ _id: import('mongoose').ObjectId, name: String, header: String }] } An array of all existing EventCategory documents, if Promise resolution is successful.
+ */
+module.exports.getAllEventCategories = () => {
+
+    return new Promise((resolve, reject) => {
+
+        EventCategories.find( {} ).sort('name').exec().then((categories) => {
+            resolve(categories);
+        }).catch(err => { reject(err); });
+
+    });
+    
+}
+
 // Event Report Functions
+// Create a new Event Report
+module.exports.addEventReport = (reportData) => {
+    return new Promise((resolve, reject) => {
+        let report = new EventReports(reportData);
+        report.save(err => {
+            if (err) { reject(`There was a problem saving the report.`); }
+            else { resolve(report); }
+        });
+    });
+}
+
+// Get all event reports
+module.exports.getEventReports = () => {
+    return new Promise((resolve, reject) => {
+        EventReports.find({}).sort('reportDate').populate('event').populate('reportedBy', [ 'displayName', 'accountHandle', 'photoURL', 'email' ]).populate('topic').exec().then((reports) => {
+            resolve(reports);
+        }).catch(err => {
+            reject(err);
+        });
+    });
+}
+
+// Get all unhandled event reports.
+// Get all handled event reports.
+// Get all reports based on user.
+// Get all reports based on event.
+
 // Report Topic Functions
+module.exports.addReportTopic = (topicData) => {
+
+    return new Promise((resolve, reject) => {
+        let topic = new ReportTopics(topicData);
+        topic.save((err) => {
+            if (err) {
+                if (err.code === 11000) {
+                    reject(`There is already a report topic with this name.`);
+                } else {
+                    reject(`There was a problem saving the report topic provided.`);
+                }
+            } else {
+                resolve(topic);
+            }
+        })
+    });
+
+}
+
+module.exports.getReportTopics = () => {
+    return new Promise((resolve, reject) => {
+        ReportTopics.find({}).sort('name').exec().then((topics) => {
+            resolve(topics);
+        }).catch(err => {
+            reject(err);
+        });
+    });
+}
+
 // FAQ Topic Functions
+module.exports.getFAQTopics = () => {
+    return new Promise((resolve, reject) => {
+        FAQTopics.find({}).sort('name').exec().then((faqTopics) => {
+            resolve(faqTopics)
+        }).catch(err => {
+            reject(err)
+        })
+    })
+}
+
+module.exports.addFAQTopics = (newFAQTopic) => {
+
+    return new Promise((resolve, reject) => {
+        let addFAQTopic = new FAQTopics(newFAQTopic)
+        addFAQTopic.save((err) =>{
+            if(err) {
+                if (err.code == 11000) {
+                    reject(`The FAQ Topic already exists.`)
+                } else {
+                    reject(`There was an error saving the FAQ Topic.`)
+                }
+            } else {
+                resolve (addFAQTopic)
+            }
+        })
+    })
+}
+
+module.exports.deleteFAQTopics = (FAQTopicID) => {
+    return new Promise((resolve, reject) => {
+        FAQTopics.deleteOne({_id: FAQTopicID}).exec().then(() => {
+            resolve(`The FAQ Topic has been succesfully removed.`)
+        }).catch((err) => {
+            reject(err)
+        })
+    })
+}
 // FAQ Question Functions
+
+module.exports.getAllFAQQuestions = () =>{
+    return new Promise((resolve, reject) => {
+        FAQQuestions.find({}).sort('question').populate('topic').exec().then((AllFAQQuestions) => {
+            resolve(AllFAQQuestions)
+        }).catch(err => {
+            reject(err);
+        })
+    })
+}
+
+module.exports.addFAQQuestion = (newFAQQuestion) =>{
+    return new Promise ((resolve, reject) => {
+        let addNewFAQQuestion = FAQQuestions(newFAQQuestion)
+        addNewFAQQuestion.save(err =>{
+            if(err){
+                if (err.code == 11000) {
+                    reject(`The FAQ Question already exists.`)
+                } else {
+                    reject(`There was an error saving the FAQ Question.`)
+                }
+            }else {
+                resolve(addNewFAQQuestion)
+            }
+        })
+    })
+}
+
+module.exports.updateFAQQuestion = (FAQQuestionID, newFAQQuestion) => {
+    return new Promise((resolve, reject) =>{
+        FAQQuestions.updateOne({_id: FAQQuestionID}, {$set: newFAQQuestion}).exec().then((updateFAQQuestion) => {
+            resolve(updateFAQQuestion);
+        }).catch((err) =>{
+            reject(err);
+        })
+    })
+}
+
+module.exports.deleteFAQQuestion = (FAQQuestionID) => {
+    return new Promise((resolve, reject) => {
+        FAQQuestionID.deleteOne({_id : FAQQuestionID}).exec().then(() =>{
+            resolve(`The FAQ Question has been removed.`)
+        }).catch((err) => {
+            reject(err)
+        })
+    })
+}
+
 // Event Registration Functions
+
+//Get all events that user has registered for
+module.exports.getAllUserRegisteredEvents = (uID) => {
+    return new Promise((resolve, reject) => {
+        EventRegistrations.find({user: uID}).exec().then((registeredEvents) => {
+            resolve(registeredEvents)
+        }).catch((err) => {
+            reject(err)
+        })
+    })
+}
+
+//Register User to an event 
+module.exports.addEventRegistration = (registrationData) => {
+    return new Promise((resolve, reject) => {
+        let registration = new EventRegistrations(registrationData);
+        registration.save((err) => {
+            if (err) {
+                reject(`There was a problem saving the event registration.`);
+            } else {
+                resolve(registration);
+            }
+        });
+    });
+}
+
+//Remove User from an Event
+module.exports.deleteEventRegistration = (registrationId) => {
+    return new Promise((resolve, reject) => {
+        EventRegistrations.deleteOne({ _id: registrationId }).exec().then(() => {
+            resolve(`Successfully removed the event registration.`);
+        }).catch((err) => {
+            reject(`There was a problem removing the registration. Please try again.`);
+        })
+    })
+}
