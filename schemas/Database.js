@@ -1020,12 +1020,20 @@ module.exports.updateFAQQuestion = (FAQQuestionID, newFAQQuestion) => {
 
 module.exports.deleteFAQQuestion = (FAQQuestionID) => {
     return new Promise((resolve, reject) => {
-        FAQQuestionID.deleteOne({_id : FAQQuestionID}).exec().then(() =>{
+        FAQQuestions.deleteOne({_id : FAQQuestionID}).exec().then(() =>{
             resolve(`The FAQ Question has been removed.`)
         }).catch((err) => {
             reject(err)
         })
-    })
+    });
+}
+
+module.exports.getFAQQuestionByTopic = (topicID) => {
+    return new Promise((resolve, reject) => {
+        FAQQuestions.find({ topic: topicID }).exec().then((q) => {
+            resolve(q);
+        }).catch((err) => reject(err));
+    });
 }
 
 // Event Registration Functions
@@ -1037,8 +1045,8 @@ module.exports.getAllUserRegisteredEvents = (uID) => {
             resolve(registeredEvents)
         }).catch((err) => {
             reject(err)
-        })
-    })
+        });
+    });
 }
 
 //Register User to an event 

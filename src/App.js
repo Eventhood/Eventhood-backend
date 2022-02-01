@@ -512,7 +512,21 @@ app.get('/api/FAQQuestions',(req,res) => {
             res.status(404).json({ message: `There are currently no FAQ Questions saved in the database.` });
         }
     })
-})
+});
+
+// Get FAQ Question by topic
+app.get('/api/FAQQuestions/:id', (req, res) => {
+    const { id } = req.params;
+
+    Database.getFAQQuestionByTopic(id).then((questions) => {
+        if (questions.length > 0) {
+            res.status(200).json({ message: `Successfully retrieved all questions for the provided topic.`, data: questions });
+        } else { res.status(404).json({ message: `There are currently no questions available for the selected topic.` }) }
+    }).catch((err) => {
+        res.status(500).json({ error: err });
+    });
+});
+
 // Add FAQ Question
 app.post('/api/FAQQuestions', (req,res) =>{
     if (!req.body.faqQuestionData) {
