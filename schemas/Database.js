@@ -1030,7 +1030,7 @@ module.exports.deleteFAQQuestion = (FAQQuestionID) => {
 
 module.exports.getFAQQuestionByTopic = (topicID) => {
     return new Promise((resolve, reject) => {
-        FAQQuestions.find({ topic: topicID }).exec().then((q) => {
+        FAQQuestions.find({ topic: topicID }).populate('topic').exec().then((q) => {
             resolve(q);
         }).catch((err) => reject(err));
     });
