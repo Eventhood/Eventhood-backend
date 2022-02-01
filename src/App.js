@@ -11,7 +11,6 @@ app.use(express.json());
 dotenv.config();
 
 const Database = require('../schemas/Database');
-const e = require('express');
 
 const geocodingAPIURL = process.env.GEOCODE_API;
 
@@ -235,12 +234,10 @@ app.get('/api/contactrequests/user/:id', (req, res) => {
   Database.findContactRequestsByUser(id)
     .then((requests) => {
       if (requests.length > 0) {
-        res
-          .status(200)
-          .json({
-            message: `Successfully found all support requests made by the specified user.`,
-            data: requests,
-          });
+        res.status(200).json({
+          message: `Successfully found all support requests made by the specified user.`,
+          data: requests,
+        });
       } else {
         res.status(404).json({ message: `The specified user has not made any support requests.` });
       }
@@ -275,11 +272,9 @@ app.get('/api/supporttopics', (req, res) => {
           .status(200)
           .json({ message: `Successfully retrieved all contact request topics.`, data: topics });
       } else {
-        res
-          .status(404)
-          .json({
-            message: `There are currently no contact request topics stored in the database.`,
-          });
+        res.status(404).json({
+          message: `There are currently no contact request topics stored in the database.`,
+        });
       }
     })
     .catch((err) => {
@@ -294,12 +289,10 @@ app.get('/api/supporttopics/:id', (req, res) => {
   Database.findContactTopicById(id)
     .then((topic) => {
       if (topic) {
-        res
-          .status(200)
-          .json({
-            message: `Successfully retrieved the requested contact request topic.`,
-            data: topic,
-          });
+        res.status(200).json({
+          message: `Successfully retrieved the requested contact request topic.`,
+          data: topic,
+        });
       } else {
         res
           .status(404)
@@ -400,12 +393,10 @@ app.get('/api/events/user/:id', (req, res) => {
   Database.getAllEventsbyUserID(id)
     .then((events) => {
       if (events.length > 0) {
-        res
-          .status(200)
-          .json({
-            message: `Successfully found all events hosted by the specified user.`,
-            data: events,
-          });
+        res.status(200).json({
+          message: `Successfully found all events hosted by the specified user.`,
+          data: events,
+        });
       } else {
         res.status(404).json({ message: `The specified user has no hosted events.` });
       }
@@ -550,12 +541,10 @@ app.get('/api/eventregistrations/user/:id', (req, res) => {
   Database.getAllUserRegisteredEvents(id)
     .then((registrations) => {
       if (registrations.length > 0) {
-        res
-          .status(200)
-          .json({
-            message: `Successfully found all registered events for the provided user.`,
-            data: registrations,
-          });
+        res.status(200).json({
+          message: `Successfully found all registered events for the provided user.`,
+          data: registrations,
+        });
       } else {
         res.status(404).json({ message: `The provided user has not registered for any events.` });
       }
@@ -624,12 +613,10 @@ app.get('/api/FAQQuestions/:id', (req, res) => {
   Database.getFAQQuestionByTopic(id)
     .then((questions) => {
       if (questions.length > 0) {
-        res
-          .status(200)
-          .json({
-            message: `Successfully retrieved all questions for the provided topic.`,
-            data: questions,
-          });
+        res.status(200).json({
+          message: `Successfully retrieved all questions for the provided topic.`,
+          data: questions,
+        });
       } else {
         res
           .status(404)

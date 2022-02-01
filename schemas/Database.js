@@ -468,7 +468,7 @@ module.exports.findFollowersByUser = (userId) => {
  */
 module.exports.addFollow = (followData) => {
   return new Promise((resolve, reject) => {
-    newFollow = new Follows(followData);
+    const newFollow = new Follows(followData);
     newFollow.save((err) => {
       if (err) {
         reject(err);
@@ -490,7 +490,7 @@ module.exports.removeFollow = (followId) => {
   return new Promise((resolve, reject) => {
     Follows.deleteOne({ _id: followId })
       .exec()
-      .then((data) => {
+      .then(() => {
         resolve(`Successfully unfollowed the user.`);
       })
       .catch((err) => {
@@ -1109,7 +1109,7 @@ module.exports.deleteEventRegistration = (registrationId) => {
       .then(() => {
         resolve(`Successfully removed the event registration.`);
       })
-      .catch((err) => {
+      .catch(() => {
         reject(`There was a problem removing the registration. Please try again.`);
       });
   });
