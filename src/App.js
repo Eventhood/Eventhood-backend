@@ -72,6 +72,24 @@ app.get('/api/users', (req, res) => {
     .catch((err) => res.status(500).json({ error: err }));
 });
 
+// Update user.
+app.put('/api/users/:id', (req, res) => {
+
+  const { id } = req.params;
+  
+  if (!req.body.userData) { res.status(400).json({ error: `User data must be provided.` }); }
+  else {
+
+    Database.updateUser(id, req.body.userData).then(uUser => {
+      res.status(200).json({ message: `The user has been successfully updated.`, data: uUser });
+    }).catch((err) => {
+      res.status(500).json({ error: err });
+    });
+
+  }
+
+});
+
 // Follow Routes
 // Register a new follow between two users in the Mongo database.
 app.post('/api/follows', (req, res) => {
