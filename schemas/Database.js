@@ -414,6 +414,15 @@ module.exports.getUsers = () => {
   });
 };
 
+// Update the user.
+module.exports.updateUser = (userId, userData) => {
+  return new Promise((resolve, reject) => {
+    Users.updateOne({ $or: [ { '_id': userId }, { 'uuid': userId } ] }, { $set: userData }).exec().then((updatedUser) => {
+      resolve(updatedUser);
+    }).catch((err) => reject(err));
+  });
+}
+
 // Follow Functions
 /**
  * Get all of the follows where the user with the specified Mongo id matches the "followedBy" property.
