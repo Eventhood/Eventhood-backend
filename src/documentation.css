@@ -1,0 +1,23 @@
+body {
+  background-color: #121212;
+}
+
+.navList {
+  list-style-type: none;
+  padding-left: 1rem;
+}
+
+.navLink {
+  text-decoration: none;
+  color: rgb(212, 212, 212);
+}
+
+.navLink:hover {
+  color: rgb(153, 153, 153);
+}
+
+.tttButton {
+  position: fixed;
+  right: 1%;
+  bottom: 1%;
+}
