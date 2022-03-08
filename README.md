@@ -1,5 +1,6 @@
 ﻿# The Neighborhood Backend API
 !["Developed With" Card](https://img.shields.io/badge/Developed%20With-Visual%20Studio%20Code,%20Express,%20MongoDB%20&%20Heroku-blue?style=for-the-badge&logo=VisualStudio)
+
 [!["Documentation" Card](https://img.shields.io/badge/Documentation-28%25%20Complete-red?style=for-the-badge&logo=Wikipedia)](https://github.com/Eventhood/Eventhood-backend/wiki)
 
 Our backend API is at the heart of all connections between our platform's mobile application and our backend systems. The API allows the mobile application to make requests and receive data from our Mongo database without having to establish a direct connection to the database itself. Not only does this mean that our mobile application can be simplified behind-the-scenes by not having to run the database queries itself (this also allows us to use the API from other platforms / features which could come in the future), but we are also able to take extra steps to secure and protect the data of both our platform and it's users.
