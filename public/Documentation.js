@@ -259,8 +259,7 @@ var tablePtr = null;
 var tableNav = null;
 
 window.onload = () => {
-
-  console.log("Documentation loaded.");
+  
   tablePtr = document.getElementById("documentation-body");
   tableNav = document.getElementById("table-nav");
 

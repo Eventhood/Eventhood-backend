@@ -698,7 +698,6 @@ Database.connect(dbURL)
   .then(() => {
     app.listen(PORT, () => {
       console.log('API is listening on port ' + PORT);
-      console.log(path.join(__dirname, "../public"));
     });
   })
   .catch((err) => {
