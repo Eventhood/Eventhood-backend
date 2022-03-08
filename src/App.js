@@ -7,7 +7,9 @@ const fetch = require('node-fetch');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(path.join(__dirname, "../public")));
+app.engine('html', require('ejs').renderFile);
+app.set("views", path.join(__dirname, "../public"));
 
 dotenv.config();
 
@@ -21,7 +23,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/documentation', (req, res) => {
-  res.sendFile(path.resolve(__dirname, './documentation.html'));
+  res.render('documentation.html');
 });
 
 // User Routes
@@ -696,6 +698,7 @@ Database.connect(dbURL)
   .then(() => {
     app.listen(PORT, () => {
       console.log('API is listening on port ' + PORT);
+      console.log(path.join(__dirname, "../public"));
     });
   })
   .catch((err) => {
