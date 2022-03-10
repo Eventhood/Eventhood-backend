@@ -217,6 +217,8 @@ app.post('/api/contactrequests', (req, res) => {
         
         Database.getUserById(requestData.user).then((u) => {
 
+          console.log(u);
+          
           const message = {
             to: `${u.email}`,
             from: `jmercer6@myseneca.ca`,
