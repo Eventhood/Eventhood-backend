@@ -352,6 +352,7 @@ module.exports.connect = (conString) => {
  * displayName: String,
  * accountHandle: String,
  * photoURL: String,
+ * email: String,
  * creationTime: Date,
  * isAdministrator: Boolean
  * }} userData The data to be saved as a new user in the Mongo database.
@@ -384,6 +385,7 @@ module.exports.addUser = (userData) => {
  * displayName: String,
  * accountHandle: String,
  * photoURL: String,
+ * email: String,
  * creationTime: Date,
  * isAdministrator: Boolean
  * }>} The user document which matches the provided UUID, if Promise resolution is successful.

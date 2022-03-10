@@ -4,6 +4,8 @@ const dotenv = require('dotenv');
 const path = require('path');
 const fetch = require('node-fetch');
 
+const sendgrid = require('@sendgrid/mail');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -212,9 +214,26 @@ app.post('/api/contactrequests', (req, res) => {
   } else {
     Database.addContactRequest(req.body.contactRequestData)
       .then((requestData) => {
-        res
-          .status(201)
-          .json({ message: `The contact request was sent successfully.`, data: requestData });
+        
+        Database.getUserById(requestData.user).then((u) => {
+
+          const message = {
+            to: `${u.email}`,
+            from: `jmercer6@myseneca.ca`,
+            replyTo: `jmercer6@myseneca.ca`,
+            dynamic_template_data: {
+              username: `${u.displayName}`
+            },
+            template_id: "d-0f21e26c6fa443a49e46805a397be7b8"
+          }
+
+          sendgrid.send(message).then((r) => {
+            console.log(r);
+          }).catch(err => console.log(err));
+
+        }).catch(err => console.log(err));
+        
+        res.status(201).json({ message: `The contact request was sent successfully.`, data: requestData });
       })
       .catch((err) => {
         res.status(500).json({ error: err });
@@ -697,6 +716,7 @@ var dbURL = process.env.MONGO_URL;
 Database.connect(dbURL)
   .then(() => {
     app.listen(PORT, () => {
+      sendgrid.setApiKey(process.env.SENDGRID_KEY);
       console.log('API is listening on port ' + PORT);
     });
   })
