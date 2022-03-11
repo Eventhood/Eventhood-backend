@@ -403,6 +403,14 @@ module.exports.getUserById = (targetUuid) => {
   });
 };
 
+module.exports.getUserByObjectId = (uoid) => {
+  return new Promise((resolve, reject) => {
+    Users.findOne({ _id: uoid }).exec().then((user) => {
+      resolve(user);
+    }).catch((err) => { reject(err); });
+  });
+}
+
 // Get all users
 module.exports.getUsers = () => {
   return new Promise((resolve, reject) => {

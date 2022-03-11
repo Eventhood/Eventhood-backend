@@ -214,23 +214,29 @@ app.post('/api/contactrequests', (req, res) => {
   } else {
     Database.addContactRequest(req.body.contactRequestData)
       .then((requestData) => {
-        
-        Database.getUserById(requestData.user).then((u) => {
-
-          console.log(u);
+        Database.getUserByObjectId(req.body.contactRequestData.user).then((u) => {
           
           const message = {
-            to: `${u.email}`,
-            from: `jmercer6@myseneca.ca`,
-            replyTo: `jmercer6@myseneca.ca`,
-            dynamic_template_data: {
-              username: `${u.displayName}`
+            from: {
+              email: "theeventhood@gmail.com"
             },
-            template_id: "d-0f21e26c6fa443a49e46805a397be7b8"
-          }
+            personalizations: [
+              {
+                to: [
+                  {
+                    email: `${u.email}`
+                  }
+                ],
+                dynamic_template_data: {
+                  username: `${u.displayName}`
+                }
+              }
+            ],
+            template_id: 'd-4bd83393f05b46e2b233f12bcc2963ec'
+          };
 
           sendgrid.send(message).then((r) => {
-            console.log(r);
+            console.log(`SENDGRID RESP:\n${r}`);
           }).catch(err => console.log(err));
 
         }).catch(err => console.log(err));
