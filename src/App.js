@@ -228,15 +228,15 @@ app.post('/api/contactrequests', (req, res) => {
                   }
                 ],
                 dynamic_template_data: {
-                  username: `${u.displayName}`
+                  username: `${u.displayName}`,
+                  requestId: `${requestData._id}`
                 }
               }
             ],
-            template_id: 'd-4bd83393f05b46e2b233f12bcc2963ec'
+            template_id: 'd-f123a0fb5ffd4ca39c7a231cf5daa4a3'
           };
 
           sendgrid.send(message).then((r) => {
-            console.log(`SENDGRID RESP:\n${r}`);
           }).catch(err => console.log(err));
 
         }).catch(err => console.log(err));
