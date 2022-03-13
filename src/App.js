@@ -36,6 +36,32 @@ app.post('/api/users', (req, res) => {
   } else {
     Database.addUser(req.body.userData)
       .then((user) => {
+
+        const message = {
+          from: {
+            email: "eventhoodapp@gmail.com"
+          },
+          personalizations: [
+            {
+              to: [
+                {
+                  email: `${req.body.userData.email}`
+                }
+              ],
+              dynamic_template_data: {
+                username: `${req.body.userData.displayName}`
+              }
+            }
+          ],
+          template_id: 'd-13981076ca2a4681a3df228f95f04347'
+        };
+
+        sendgrid.send(message).then(() => {
+
+        }).catch((err) => {
+          console.log(err);
+        });
+
         res.status(201).json({ message: `Successfully saved user data.`, data: user });
       })
       .catch((err) => {
@@ -218,7 +244,7 @@ app.post('/api/contactrequests', (req, res) => {
           
           const message = {
             from: {
-              email: "theeventhood@gmail.com"
+              email: "eventhoodapp@gmail.com"
             },
             personalizations: [
               {
@@ -512,6 +538,35 @@ app.post('/api/eventreports', (req, res) => {
   } else {
     Database.addEventReport(req.body.reportData)
       .then((report) => {
+        
+        Database.getUserByObjectId(req.body.reportData.reportedBy).then((user) => {
+
+          const message = {
+            from: {
+              email: "eventhoodapp@gmail.com"
+            },
+            personalizations: [
+              {
+                to: [
+                  {
+                    email: `${user.email}`
+                  }
+                ],
+                dynamic_template_data: {
+                  username: `${user.displayName}`
+                }
+              }
+            ],
+            template_id: 'd-1858fd6c28f949c2a833ef773bcdfa6d'
+          };
+  
+          sendgrid.send(message).then(() => {
+          }).catch((err) => {
+            console.log(err);
+          });
+
+        }).catch(err => console.log(err));
+
         res.status(201).json({ message: `Successfully saved the provided report.`, data: report });
       })
       .catch((err) => {
@@ -574,12 +629,54 @@ app.post('/api/eventregistrations', (req, res) => {
   } else {
     Database.addEventRegistration(req.body.registrationData)
       .then((registration) => {
-        res
-          .status(201)
-          .json({ message: `Successfull saved the event registration.`, data: registration });
+
+        Database.getEventRegistrationById(registration._id).then((registration) => {
+
+          const message = {
+            from: {
+              email: "eventhoodapp@gmail.com"
+            },
+            personalizations: [
+              {
+                to: [
+                  {
+                    email: `${registration.user.email}`
+                  }
+                ],
+                dynamic_template_data: {
+                  username: `${registration.user.displayName}`,
+                  eventHost: `${registration.event.host.displayName}`,
+                  eventName: `${registration.event.name}`,
+                  eventDate: `${registration.event.startTime}`
+                }
+              }
+            ],
+            template_id: 'd-ca6ce57e20fd4ea196981a56716951f4'
+          };
+  
+          sendgrid.send(message).then(() => {
+          }).catch((err) => {
+            console.log(err);
+          });
+
+        }).catch(err => console.log(err));
+
+        res.status(201).json({ message: `Successfull saved the event registration.`, data: registration });
       })
       .catch((err) => res.status(500).json({ error: err }));
   }
+});
+
+app.get("/api/eventregistrations/:id", (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    res.status(400).json({ error: "You must include a registration id." });
+  }
+
+  Database.getEventRegistrationById(id).then((registration) => {
+    res.status(200).json({ reg: registration });
+  }).catch(err => res.status(500).json({ error: err }));
 });
 
 // Get all event registrations by user.

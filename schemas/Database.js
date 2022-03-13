@@ -1120,6 +1120,15 @@ module.exports.addEventRegistration = (registrationData) => {
   });
 };
 
+// Get an event registration by id.
+module.exports.getEventRegistrationById = (eRId) => {
+  return new Promise((resolve, reject) => {
+    EventRegistrations.findOne({ _id: eRId }).populate({ path: "event", select: "name startTime host", populate: { path: 'host', select: 'displayName' } }).populate('user', [ 'displayName', 'email' ]).exec().then((registration) => {
+      resolve(registration);
+    }).catch(err => reject(err));
+  });
+}
+
 //Remove User from an Event
 module.exports.deleteEventRegistration = (registrationId) => {
   return new Promise((resolve, reject) => {
