@@ -5,6 +5,8 @@ const path = require('path');
 const fetch = require('node-fetch');
 
 const sendgrid = require('@sendgrid/mail');
+const adminSDK = require("firebase-admin/app");
+const { getAuth } = require('firebase-admin/auth');
 
 const app = express();
 app.use(cors());
@@ -14,6 +16,12 @@ app.engine('html', require('ejs').renderFile);
 app.set("views", path.join(__dirname, "../public"));
 
 dotenv.config();
+
+const sdkCreds = JSON.parse(process.env.FIREBASE_ADMIN_STUFF);
+
+adminSDK.initializeApp({
+  credential: adminSDK.cert(sdkCreds)
+});
 
 const Database = require('../schemas/Database');
 
@@ -31,6 +39,7 @@ app.get('/documentation', (req, res) => {
 // User Routes
 // Add new user data to the database.
 app.post('/api/users', (req, res) => {
+  
   if (!req.body.userData) {
     res.status(400).json({ error: `User data must be provided.` });
   } else {
@@ -72,26 +81,65 @@ app.post('/api/users', (req, res) => {
 
 // Find a specific user's data by their Firebase UUID.
 app.get('/api/users/:uuid', (req, res) => {
-  const { uuid } = req.params;
 
-  Database.getUserById(uuid)
-    .then((user) => {
-      if (user) {
-        res.status(200).json({
-          message: `User found successfully.`,
-          data: user,
+  console.log(req.headers.authorization);
+  
+  // Authentication Route for Security
+  // idToken comes from the client app
+  getAuth()
+    .verifyIdToken(req.headers.authorization)
+    .then((decodedToken) => {
+      const uid = decodedToken.uid;
+      
+      const { uuid } = req.params;
+
+      if(uid == uuid)
+      {
+        Database.getUserById(uuid)
+        .then((user) => {
+          if (user) {
+            res.status(200).json({
+              message: `User found successfully.`,
+              data: user,
+            });
+          } else {
+            res.status(404).json({ error: `Could not find any matching users.` });
+          }
+        })
+        .catch((err) => {
+          res.status(500).json({ error: err });
         });
-      } else {
-        res.status(404).json({ error: `Could not find any matching users.` });
+      }
+      else{
+        res.status(401).json({error: "Unauthenticated User, access denied"})
       }
     })
     .catch((err) => {
-      res.status(500).json({ error: err });
+      // Handle error
+      res.status(401).json({error: err});
     });
+
+  // const { uuid } = req.params;
+
+  // Database.getUserById(uuid)
+  //   .then((user) => {
+  //     if (user) {
+  //       res.status(200).json({
+  //         message: `User found successfully.`,
+  //         data: user,
+  //       });
+  //     } else {
+  //       res.status(404).json({ error: `Could not find any matching users.` });
+  //     }
+  //   })
+  //   .catch((err) => {
+  //     res.status(500).json({ error: err });
+  //   });
 });
 
 // Get all users.
 app.get('/api/users', (req, res) => {
+
   Database.getUsers()
     .then((users) => {
       if (users.length > 0) {
@@ -304,8 +352,9 @@ app.get('/api/contactrequests/single/:id', (req, res) => {
 // Find all contact requests submitted by a specific user.
 app.get('/api/contactrequests/user/:id', (req, res) => {
   const { id } = req.params;
+  const { includeClosed, includeClaimed } = req.query;
 
-  Database.findContactRequestsByUser(id)
+  Database.findContactRequestsByUser(id, includeClosed, includeClaimed)
     .then((requests) => {
       if (requests.length > 0) {
         res.status(200).json({
@@ -317,6 +366,7 @@ app.get('/api/contactrequests/user/:id', (req, res) => {
       }
     })
     .catch((err) => {
+      console.log(err);
       res.status(500).json({ error: err });
     });
 });

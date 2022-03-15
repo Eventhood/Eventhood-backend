@@ -656,11 +656,18 @@ module.exports.getAllContactRequests = () => {
  * Find all contact requests submitted by the user with the provided Mongo ObjectId (_id).
  *
  * @param {String} userId The Mongo ObjectId (_id) of the target user.
+ * @param {Boolean} includeClosed If closed requests should be included.
+ * @param {Boolean} includeClaimed If already claimed requests should be included.
  * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, user: Object, topic: Object, message: String, requestDate: Date }]>} An array of all contact requests where the user has an id matching the one provided, if Promise resolution is successful.
  */
-module.exports.findContactRequestsByUser = (userId) => {
+module.exports.findContactRequestsByUser = (userId, includeClosed, includeClaimed) => {
   return new Promise((resolve, reject) => {
-    ContactRequests.find({ user: userId })
+    let queryFilter = { user: userId };
+
+    if (includeClaimed) { queryFilter.handlingStaff = {}; queryFilter.handlingStaff.claimed = includeClaimed }
+    if (includeClosed) { queryFilter.requestOpen = includeClosed }
+
+    ContactRequests.find(queryFilter)
       .sort('requestDate')
       .populate('user', ['displayName', 'accountHandle', 'photoURL'])
       .populate('topic')
