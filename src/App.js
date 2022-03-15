@@ -408,6 +408,7 @@ app.post('/api/events', (req, res) => {
           let lData = {
             lat: locationData.results[0].locations[0].latLng.lat,
             lon: locationData.results[0].locations[0].latLng.lng,
+            address: event.location
           };
 
           // Update eventData location to have the lat and long

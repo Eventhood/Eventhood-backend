@@ -153,6 +153,10 @@ let eventsSchema = new Schema({
       type: Number,
       required: true,
     },
+    address: {
+      type: String,
+      required: true
+    }
   },
   category: {
     type: Schema.Types.ObjectId,
