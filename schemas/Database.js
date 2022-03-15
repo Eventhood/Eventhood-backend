@@ -804,10 +804,10 @@ module.exports.addEvent = (eventData) => {
 };
 
 // Update event
-module.exports.updateEvent = (eventID, hostID, eventData) => {
+module.exports.updateEvent = (eventID, eventData) => {
   //Only host should be able to update their own Event
   return new Promise((resolve, reject) => {
-    Events.updateOne({ host: hostID, _id: eventID }, { $set: eventData })
+    Events.updateOne({ _id: eventID }, { $set: eventData })
       .exec()
       .then((updatedEvent) => {
         resolve(updatedEvent);

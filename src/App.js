@@ -480,6 +480,29 @@ app.get('/api/events/user/:id', (req, res) => {
     });
 });
 
+// Update the target event with the provided changes.
+app.put('/api/events/:id', (req, res) => {
+  const { id } = req.params;
+  
+  if (!req.body.eventData) { res.status(400).json({ error: `You must provide event data to update.` }); }
+  else {
+    Database.updateEvent(id, req.body.eventData).then((updatedEvent) => {
+
+      res.status(200).json({ message: `The event has been successfully updated.`, data: updatedEvent });
+
+    }).catch(err => res.status(500).json({ error: err }));
+  }
+});
+
+// Remove the target event.
+app.delete('/api/events/:id', (req, res) => {
+  const { id } = req.params;
+
+  Database.deleteEvent(id).then(() => {
+    res.status(200).json({ message: `The event has been successfully deleted.` });
+  }).catch(err => res.status(500).json({ error: err }));
+});
+
 // EventCategory Routes
 // Add an event category to the database.
 app.post('/api/eventcategories', (req, res) => {
