@@ -437,7 +437,7 @@ app.post('/api/events', (req, res) => {
     let event = req.body.eventData;
 
     // Take string location, plug it into geocoding api
-    fetch(`${geocodingAPIURL}${event.location.replace(' ', '+')}`, { method: 'GET' })
+    fetch(`${geocodingAPIURL}${event.location.replace(' ', '%20')}`, { method: 'GET' })
       .then((data) => {
         console.log(`Data: ${JSON.stringify(data)}`);
         return data.json();
