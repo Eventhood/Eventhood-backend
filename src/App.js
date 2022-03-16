@@ -85,13 +85,11 @@ app.get('/api/users/:uuid', (req, res) => {
   // Authentication Route for Security
   // idToken comes from the client app
   const receivedAuth = req.headers.authorization;
-  const token = receivedAuth.split(' ')[1];
-  console.log(`TOKEN: ${token}`);
+  const token = receivedAuth?.split(' ')[1];
 
   getAuth()
     .verifyIdToken(token)
     .then((decodedToken) => {
-      console.log(decodedToken);
       const uid = decodedToken.uid;
       
       const { uuid } = req.params;
@@ -442,11 +440,9 @@ app.post('/api/events', (req, res) => {
     // Take string location, plug it into geocoding api
     fetch(`${geocodingAPIURL}${event.location.replace(' ', '%20')}`, { method: 'GET' })
       .then((data) => {
-        console.log(`Data: ${JSON.stringify(data)}`);
         return data.json();
       })
       .then((locationData) => {
-        console.log(`LOCATION DATA: ${JSON.stringify(locationData.results[0])}`);
         // Check to make sure that the location is valid (has all of the basic fields).
         if (
           locationData.results[0].locations[0].street === '' &&
