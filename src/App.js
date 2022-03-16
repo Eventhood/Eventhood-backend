@@ -81,13 +81,14 @@ app.post('/api/users', (req, res) => {
 
 // Find a specific user's data by their Firebase UUID.
 app.get('/api/users/:uuid', (req, res) => {
-
-  console.log(req.headers.authorization);
   
   // Authentication Route for Security
   // idToken comes from the client app
+  const token = req.headers.authorization.split(' ')[1];
+  console.log(`TOKEN: ${token}`);
+  
   getAuth()
-    .verifyIdToken(req.headers.authorization)
+    .verifyIdToken(token)
     .then((decodedToken) => {
       const uid = decodedToken.uid;
       
