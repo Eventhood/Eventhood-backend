@@ -84,9 +84,10 @@ app.get('/api/users/:uuid', (req, res) => {
   
   // Authentication Route for Security
   // idToken comes from the client app
-  const token = req.headers.authorization.split(' ')[1];
+  const receivedAuth = req.headers.authorization;
+  const token = receivedAuth.split(' ')[1];
   console.log(`TOKEN: ${token}`);
-  
+
   getAuth()
     .verifyIdToken(token)
     .then((decodedToken) => {
