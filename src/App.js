@@ -91,6 +91,7 @@ app.get('/api/users/:uuid', (req, res) => {
   getAuth()
     .verifyIdToken(token)
     .then((decodedToken) => {
+      console.log(decodedToken);
       const uid = decodedToken.uid;
       
       const { uuid } = req.params;
