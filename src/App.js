@@ -444,36 +444,25 @@ app.post('/api/events', (req, res) => {
       })
       .then((locationData) => {
         // Check to make sure that the location is valid (has all of the basic fields).
-        if (
-          locationData.results[0].locations[0].street === '' &&
-          locationData.results[0].locations[0].adminArea6 === '' &&
-          locationData.results[0].locations[0].adminArea5 === '' &&
-          locationData.results[0].locations[0].adminArea4 !== '' &&
-          locationData.results[0].locations[0].adminArea3 === ''
-        ) {
-          res.status(400).json({ error: `The location provided could not be found.` });
-        } else {
-          // Store geocoding result to variable
-          let lData = {
-            lat: locationData.results[0].locations[0].latLng.lat,
-            lon: locationData.results[0].locations[0].latLng.lng,
-            address: event.location
-          };
+        let lData = {
+          lat: locationData.features[0].properties.lat,
+          lon: locationData.features[0].properties.lon,
+          address: locationData.features[0].properties.formatted
+        };
 
-          // Update eventData location to have the lat and long
-          event.location = lData;
+        // Update eventData location to have the lat and long
+        event.location = lData;
 
-          // Pass the updated eventData to the addEvent function.
-          Database.addEvent(event)
-            .then((savedEvent) => {
-              res
-                .status(201)
-                .json({ message: `The event was successfully registered.`, data: savedEvent });
-            })
-            .catch((err) => {
-              res.status(500).json({ error: err });
-            });
-        }
+        // Pass the updated eventData to the addEvent function.
+        Database.addEvent(event)
+          .then((savedEvent) => {
+            res
+              .status(201)
+              .json({ message: `The event was successfully registered.`, data: savedEvent });
+          })
+          .catch((err) => {
+            res.status(500).json({ error: err });
+          });
       })
       .catch((err) => {
         console.log(`ERROR: ${err}`);
