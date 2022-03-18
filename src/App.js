@@ -173,17 +173,40 @@ app.put('/api/users/:id', (req, res) => {
 // Follow Routes
 // Register a new follow between two users in the Mongo database.
 app.post('/api/follows', (req, res) => {
-  if (!req.body.followData) {
-    res.status(400).json({ error: `Follow data must be provided.` });
-  } else {
-    Database.addFollow(req.body.followData)
-      .then((follow) => {
-        res.status(201).json({ message: `Successfully registered new user follow.`, data: follow });
-      })
-      .catch((err) => {
-        res.status(400).json({ error: err });
-      });
-  }
+
+  const receivedAuth = req.headers.authorization;
+  const token = receivedAuth?.split(' ')[1];
+
+  // idToken comes from the client app
+  getAuth()
+    .verifyIdToken(token)
+    .then((decodedToken) => {
+      const uid = decodedToken.uid;
+      
+      //Compare the user that is following towards the uid from decodedToken
+      if (!req.body.followData) {
+        res.status(400).json({ error: `Follow data must be provided.` });
+      } else {
+        if(req.body.followData.followedBy.uuid == uid)
+        {
+        Database.addFollow(req.body.followData)
+          .then((follow) => {
+            res.status(201).json({ message: `Successfully registered new user follow.`, data: follow });
+          })
+          .catch((err) => {
+            res.status(400).json({ error: err });
+          });
+        }
+        else
+        {
+          res.status(401).json({error: "Permissions do not meet required access for functionality. Please contact support."})
+        }
+      }
+  })
+  .catch((err) => {
+    // Handle error
+    res.status(401).json({error: err});
+  });
 });
 
 // Get all users followed by the user with the provided Mongo ObjectId (_id).
@@ -207,6 +230,7 @@ app.get('/api/follows/following/:id', (req, res) => {
 
 // Get all users which are following the user with the provided Mongo ObjectId (_id).
 app.get('/api/follows/followers/:id', (req, res) => {
+
   const { id } = req.params;
 
   Database.findFollowersByUser(id)
@@ -311,7 +335,7 @@ app.post('/api/contactrequests', (req, res) => {
             template_id: 'd-f123a0fb5ffd4ca39c7a231cf5daa4a3'
           };
 
-          sendgrid.send(message).then((r) => {
+          sendgrid.send(message).then(() => {
           }).catch(err => console.log(err));
 
         }).catch(err => console.log(err));
@@ -525,11 +549,45 @@ app.put('/api/events/:id', (req, res) => {
   
   if (!req.body.eventData) { res.status(400).json({ error: `You must provide event data to update.` }); }
   else {
-    Database.updateEvent(id, req.body.eventData).then((updatedEvent) => {
 
-      res.status(200).json({ message: `The event has been successfully updated.`, data: updatedEvent });
+      //Adding in new event for update 
+      let event = req.body.eventData;
 
-    }).catch(err => res.status(500).json({ error: err }));
+      // Take new string location, plug it into geocoding api
+      // Replace any spaces with %20 for api 
+      if (event.location) {
+        fetch(`${geocodingAPIURL}${event.location.replace(' ', '%20')}`, { method: 'GET' })
+        .then((data) => {
+          return data.json();
+        })
+          .then((locationData) => {
+            // Check to make sure that the location is valid (has all of the basic fields).
+            let lData = {
+              lat: locationData.features[0].properties.lat,
+              lon: locationData.features[0].properties.lon,
+              address: locationData.features[0].properties.formatted
+            };
+    
+            // Update eventData location to have the lat and long
+            event.location = lData;
+    
+            //Pass the new updated event data to the updateEvent function
+            Database.updateEvent(id, event)
+              .then((updatedEvent) => {
+              res.status(200).json({ message: `The event has been successfully updated.`, data: updatedEvent });
+            }).catch(err => res.status(500).json({ error: err }));
+        })
+        .catch((err) => {
+          console.log(`ERROR: ${err}`);
+          res.status(500).json({ error: err });
+        });
+      } else {
+        //Pass the new updated event data to the updateEvent function
+        Database.updateEvent(id, event)
+          .then((updatedEvent) => {
+          res.status(200).json({ message: `The event has been successfully updated.`, data: updatedEvent });
+        }).catch(err => res.status(500).json({ error: err }));
+      }
   }
 });
 
