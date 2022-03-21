@@ -789,7 +789,7 @@ module.exports.getSingleEventbyEventID = (eventID) => {
   return new Promise((resolve, reject) => {
     Events.findOne({ _id: eventID })
       .populate('category')
-      .populate('host', ['accountHandle'])
+      .populate('host', ['accountHandle', 'photoURL'])
       .exec()
       .then((events) => {
         resolve(events);
