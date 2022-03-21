@@ -159,15 +159,12 @@ app.put('/api/users/:id', (req, res) => {
   
   if (!req.body.userData) { res.status(400).json({ error: `User data must be provided.` }); }
   else {
-
     Database.updateUser(id, req.body.userData).then(uUser => {
       res.status(200).json({ message: `The user has been successfully updated.`, data: uUser });
     }).catch((err) => {
       res.status(500).json({ error: err });
     });
-
   }
-
 });
 
 // Follow Routes
@@ -511,14 +508,26 @@ app.get('/api/events', (req, res) => {
 });
 
 // Get event by event ObjectId (_id).
-app.get('/api/events/single/:id', (req, res) => {
+app.get('/api/events/single/:id', async (req, res) => {
   const { id } = req.params;
 
   Database.getSingleEventbyEventID(id)
-    .then((event) => {
-      res.status(200).json({ message: `Successfully found the requested event.`, data: event });
+    .then(async (event) => {
+      let d;
+      
+      if (event.maxParticipants >= 1) {
+        d = {
+          ...event,
+          currentlyRegistered: await Database.countEventRegistrationsByEvent(id)
+        };
+      } else {
+        d = event;
+      }
+
+      res.status(200).json({ message: `Successfully found the requested event.`, data: d });
     })
     .catch((err) => {
+      console.log(err);
       res.status(500).json({ error: err });
     });
 });

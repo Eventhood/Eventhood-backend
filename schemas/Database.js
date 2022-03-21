@@ -1153,3 +1153,8 @@ module.exports.deleteEventRegistration = (registrationId) => {
       });
   });
 };
+
+// Count event registrations by event.
+module.exports.countEventRegistrationsByEvent = async eId => {
+  return await EventRegistrations.countDocuments({ event: eId }).exec();
+}
