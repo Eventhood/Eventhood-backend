@@ -516,10 +516,8 @@ app.get('/api/events/single/:id', async (req, res) => {
       let d;
       
       if (event.maxParticipants >= 1) {
-        d = {
-          ...event,
-          currentlyRegistered: await Database.countEventRegistrationsByEvent(id)
-        };
+        let tE = JSON.parse(JSON.stringify(event));
+        d = {...tE, currentlyRegistered: await Database.countEventRegistrationsByEvent(id)};
       } else {
         d = event;
       }
