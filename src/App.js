@@ -5,22 +5,22 @@ const path = require('path');
 const fetch = require('node-fetch');
 
 const sendgrid = require('@sendgrid/mail');
-const adminSDK = require("firebase-admin/app");
+const adminSDK = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.static(path.join(__dirname, '../public')));
 app.engine('html', require('ejs').renderFile);
-app.set("views", path.join(__dirname, "../public"));
+app.set('views', path.join(__dirname, '../public'));
 
 dotenv.config();
 
 const sdkCreds = JSON.parse(process.env.FIREBASE_ADMIN_STUFF);
 
 adminSDK.initializeApp({
-  credential: adminSDK.cert(sdkCreds)
+  credential: adminSDK.cert(sdkCreds),
 });
 
 const Database = require('../schemas/Database');
@@ -41,37 +41,36 @@ app.get('/documentation', (req, res) => {
 // User Routes
 // Add new user data to the database.
 app.post('/api/users', (req, res) => {
-  
   if (!req.body.userData) {
     res.status(400).json({ error: `User data must be provided.` });
   } else {
     Database.addUser(req.body.userData)
       .then((user) => {
-
         const message = {
           from: {
-            email: "eventhoodapp@gmail.com"
+            email: 'eventhoodapp@gmail.com',
           },
           personalizations: [
             {
               to: [
                 {
-                  email: `${req.body.userData.email}`
-                }
+                  email: `${req.body.userData.email}`,
+                },
               ],
               dynamic_template_data: {
-                username: `${req.body.userData.displayName}`
-              }
-            }
+                username: `${req.body.userData.displayName}`,
+              },
+            },
           ],
-          template_id: 'd-13981076ca2a4681a3df228f95f04347'
+          template_id: 'd-13981076ca2a4681a3df228f95f04347',
         };
 
-        sendgrid.send(message).then(() => {
-
-        }).catch((err) => {
-          console.log(err);
-        });
+        sendgrid
+          .send(message)
+          .then(() => {})
+          .catch((err) => {
+            console.log(err);
+          });
 
         res.status(201).json({ message: `Successfully saved user data.`, data: user });
       })
@@ -83,7 +82,6 @@ app.post('/api/users', (req, res) => {
 
 // Find a specific user's data by their Firebase UUID.
 app.get('/api/users/:uuid', (req, res) => {
-  
   // Authentication Route for Security
   // idToken comes from the client app
   const receivedAuth = req.headers.authorization;
@@ -93,33 +91,31 @@ app.get('/api/users/:uuid', (req, res) => {
     .verifyIdToken(token)
     .then((decodedToken) => {
       const uid = decodedToken.uid;
-      
+
       const { uuid } = req.params;
 
-      if(uid == uuid)
-      {
+      if (uid == uuid) {
         Database.getUserById(uuid)
-        .then((user) => {
-          if (user) {
-            res.status(200).json({
-              message: `User found successfully.`,
-              data: user,
-            });
-          } else {
-            res.status(404).json({ error: `Could not find any matching users.` });
-          }
-        })
-        .catch((err) => {
-          res.status(500).json({ error: err });
-        });
-      }
-      else{
-        res.status(401).json({error: "Unauthenticated User, access denied"})
+          .then((user) => {
+            if (user) {
+              res.status(200).json({
+                message: `User found successfully.`,
+                data: user,
+              });
+            } else {
+              res.status(404).json({ error: `Could not find any matching users.` });
+            }
+          })
+          .catch((err) => {
+            res.status(500).json({ error: err });
+          });
+      } else {
+        res.status(401).json({ error: 'Unauthenticated User, access denied' });
       }
     })
     .catch((err) => {
       // Handle error
-      res.status(401).json({error: err});
+      res.status(401).json({ error: err });
     });
 
   // const { uuid } = req.params;
@@ -142,7 +138,6 @@ app.get('/api/users/:uuid', (req, res) => {
 
 // Get all users.
 app.get('/api/users', (req, res) => {
-
   Database.getUsers()
     .then((users) => {
       if (users.length > 0) {
@@ -156,23 +151,24 @@ app.get('/api/users', (req, res) => {
 
 // Update user.
 app.put('/api/users/:id', (req, res) => {
-
   const { id } = req.params;
-  
-  if (!req.body.userData) { res.status(400).json({ error: `User data must be provided.` }); }
-  else {
-    Database.updateUser(id, req.body.userData).then(uUser => {
-      res.status(200).json({ message: `The user has been successfully updated.`, data: uUser });
-    }).catch((err) => {
-      res.status(500).json({ error: err });
-    });
+
+  if (!req.body.userData) {
+    res.status(400).json({ error: `User data must be provided.` });
+  } else {
+    Database.updateUser(id, req.body.userData)
+      .then((uUser) => {
+        res.status(200).json({ message: `The user has been successfully updated.`, data: uUser });
+      })
+      .catch((err) => {
+        res.status(500).json({ error: err });
+      });
   }
 });
 
 // Follow Routes
 // Register a new follow between two users in the Mongo database.
 app.post('/api/follows', (req, res) => {
-
   const receivedAuth = req.headers.authorization;
   const token = receivedAuth?.split(' ')[1];
 
@@ -181,31 +177,35 @@ app.post('/api/follows', (req, res) => {
     .verifyIdToken(token)
     .then((decodedToken) => {
       const uid = decodedToken.uid;
-      
+
       //Compare the user that is following towards the uid from decodedToken
       if (!req.body.followData) {
         res.status(400).json({ error: `Follow data must be provided.` });
       } else {
-        if(req.body.followData.followedBy.uuid == uid)
-        {
-        Database.addFollow(req.body.followData)
-          .then((follow) => {
-            res.status(201).json({ message: `Successfully registered new user follow.`, data: follow });
-          })
-          .catch((err) => {
-            res.status(400).json({ error: err });
-          });
-        }
-        else
-        {
-          res.status(401).json({error: "Permissions do not meet required access for functionality. Please contact support."})
+        if (req.body.followData.followedBy.uuid == uid) {
+          Database.addFollow(req.body.followData)
+            .then((follow) => {
+              res
+                .status(201)
+                .json({ message: `Successfully registered new user follow.`, data: follow });
+            })
+            .catch((err) => {
+              res.status(400).json({ error: err });
+            });
+        } else {
+          res
+            .status(401)
+            .json({
+              error:
+                'Permissions do not meet required access for functionality. Please contact support.',
+            });
         }
       }
-  })
-  .catch((err) => {
-    // Handle error
-    res.status(401).json({error: err});
-  });
+    })
+    .catch((err) => {
+      // Handle error
+      res.status(401).json({ error: err });
+    });
 });
 
 // Get all users followed by the user with the provided Mongo ObjectId (_id).
@@ -229,7 +229,6 @@ app.get('/api/follows/following/:id', (req, res) => {
 
 // Get all users which are following the user with the provided Mongo ObjectId (_id).
 app.get('/api/follows/followers/:id', (req, res) => {
-
   const { id } = req.params;
 
   Database.findFollowersByUser(id)
@@ -312,34 +311,38 @@ app.post('/api/contactrequests', (req, res) => {
   } else {
     Database.addContactRequest(req.body.contactRequestData)
       .then((requestData) => {
-        Database.getUserByObjectId(req.body.contactRequestData.user).then((u) => {
-          
-          const message = {
-            from: {
-              email: "eventhoodapp@gmail.com"
-            },
-            personalizations: [
-              {
-                to: [
-                  {
-                    email: `${u.email}`
-                  }
-                ],
-                dynamic_template_data: {
-                  username: `${u.displayName}`,
-                  requestId: `${requestData._id}`
-                }
-              }
-            ],
-            template_id: 'd-f123a0fb5ffd4ca39c7a231cf5daa4a3'
-          };
+        Database.getUserByObjectId(req.body.contactRequestData.user)
+          .then((u) => {
+            const message = {
+              from: {
+                email: 'eventhoodapp@gmail.com',
+              },
+              personalizations: [
+                {
+                  to: [
+                    {
+                      email: `${u.email}`,
+                    },
+                  ],
+                  dynamic_template_data: {
+                    username: `${u.displayName}`,
+                    requestId: `${requestData._id}`,
+                  },
+                },
+              ],
+              template_id: 'd-f123a0fb5ffd4ca39c7a231cf5daa4a3',
+            };
 
-          sendgrid.send(message).then(() => {
-          }).catch(err => console.log(err));
+            sendgrid
+              .send(message)
+              .then(() => {})
+              .catch((err) => console.log(err));
+          })
+          .catch((err) => console.log(err));
 
-        }).catch(err => console.log(err));
-        
-        res.status(201).json({ message: `The contact request was sent successfully.`, data: requestData });
+        res
+          .status(201)
+          .json({ message: `The contact request was sent successfully.`, data: requestData });
       })
       .catch((err) => {
         res.status(500).json({ error: err });
@@ -470,7 +473,7 @@ app.post('/api/events', (req, res) => {
         let lData = {
           lat: locationData.features[0].properties.lat,
           lon: locationData.features[0].properties.lon,
-          address: locationData.features[0].properties.formatted
+          address: locationData.features[0].properties.formatted,
         };
 
         // Update eventData location to have the lat and long
@@ -516,10 +519,10 @@ app.get('/api/events/single/:id', async (req, res) => {
   Database.getSingleEventbyEventID(id)
     .then(async (event) => {
       let d;
-      
+
       if (event.maxParticipants >= 1) {
         let tE = JSON.parse(JSON.stringify(event));
-        d = {...tE, currentlyRegistered: await Database.countEventRegistrationsByEvent(id)};
+        d = { ...tE, currentlyRegistered: await Database.countEventRegistrationsByEvent(id) };
       } else {
         d = event;
       }
@@ -555,48 +558,54 @@ app.get('/api/events/user/:id', (req, res) => {
 // Update the target event with the provided changes.
 app.put('/api/events/:id', (req, res) => {
   const { id } = req.params;
-  
-  if (!req.body.eventData) { res.status(400).json({ error: `You must provide event data to update.` }); }
-  else {
 
-      //Adding in new event for update 
-      let event = req.body.eventData;
+  if (!req.body.eventData) {
+    res.status(400).json({ error: `You must provide event data to update.` });
+  } else {
+    //Adding in new event for update
+    let event = req.body.eventData;
 
-      // Take new string location, plug it into geocoding api
-      // Replace any spaces with %20 for api 
-      if (event.location) {
-        fetch(`${geocodingAPIURL}${event.location.replace(' ', '%20')}`, { method: 'GET' })
+    // Take new string location, plug it into geocoding api
+    // Replace any spaces with %20 for api
+    if (event.location) {
+      fetch(`${geocodingAPIURL}${event.location.replace(' ', '%20')}`, { method: 'GET' })
         .then((data) => {
           return data.json();
         })
-          .then((locationData) => {
-            // Check to make sure that the location is valid (has all of the basic fields).
-            let lData = {
-              lat: locationData.features[0].properties.lat,
-              lon: locationData.features[0].properties.lon,
-              address: locationData.features[0].properties.formatted
-            };
-    
-            // Update eventData location to have the lat and long
-            event.location = lData;
-    
-            //Pass the new updated event data to the updateEvent function
-            Database.updateEvent(id, event)
-              .then((updatedEvent) => {
-              res.status(200).json({ message: `The event has been successfully updated.`, data: updatedEvent });
-            }).catch(err => res.status(500).json({ error: err }));
+        .then((locationData) => {
+          // Check to make sure that the location is valid (has all of the basic fields).
+          let lData = {
+            lat: locationData.features[0].properties.lat,
+            lon: locationData.features[0].properties.lon,
+            address: locationData.features[0].properties.formatted,
+          };
+
+          // Update eventData location to have the lat and long
+          event.location = lData;
+
+          //Pass the new updated event data to the updateEvent function
+          Database.updateEvent(id, event)
+            .then((updatedEvent) => {
+              res
+                .status(200)
+                .json({ message: `The event has been successfully updated.`, data: updatedEvent });
+            })
+            .catch((err) => res.status(500).json({ error: err }));
         })
         .catch((err) => {
           console.log(`ERROR: ${err}`);
           res.status(500).json({ error: err });
         });
-      } else {
-        //Pass the new updated event data to the updateEvent function
-        Database.updateEvent(id, event)
-          .then((updatedEvent) => {
-          res.status(200).json({ message: `The event has been successfully updated.`, data: updatedEvent });
-        }).catch(err => res.status(500).json({ error: err }));
-      }
+    } else {
+      //Pass the new updated event data to the updateEvent function
+      Database.updateEvent(id, event)
+        .then((updatedEvent) => {
+          res
+            .status(200)
+            .json({ message: `The event has been successfully updated.`, data: updatedEvent });
+        })
+        .catch((err) => res.status(500).json({ error: err }));
+    }
   }
 });
 
@@ -604,9 +613,11 @@ app.put('/api/events/:id', (req, res) => {
 app.delete('/api/events/:id', (req, res) => {
   const { id } = req.params;
 
-  Database.deleteEvent(id).then(() => {
-    res.status(200).json({ message: `The event has been successfully deleted.` });
-  }).catch(err => res.status(500).json({ error: err }));
+  Database.deleteEvent(id)
+    .then(() => {
+      res.status(200).json({ message: `The event has been successfully deleted.` });
+    })
+    .catch((err) => res.status(500).json({ error: err }));
 });
 
 // EventCategory Routes
@@ -667,34 +678,35 @@ app.post('/api/eventreports', (req, res) => {
   } else {
     Database.addEventReport(req.body.reportData)
       .then((report) => {
-        
-        Database.getUserByObjectId(req.body.reportData.reportedBy).then((user) => {
+        Database.getUserByObjectId(req.body.reportData.reportedBy)
+          .then((user) => {
+            const message = {
+              from: {
+                email: 'eventhoodapp@gmail.com',
+              },
+              personalizations: [
+                {
+                  to: [
+                    {
+                      email: `${user.email}`,
+                    },
+                  ],
+                  dynamic_template_data: {
+                    username: `${user.displayName}`,
+                  },
+                },
+              ],
+              template_id: 'd-1858fd6c28f949c2a833ef773bcdfa6d',
+            };
 
-          const message = {
-            from: {
-              email: "eventhoodapp@gmail.com"
-            },
-            personalizations: [
-              {
-                to: [
-                  {
-                    email: `${user.email}`
-                  }
-                ],
-                dynamic_template_data: {
-                  username: `${user.displayName}`
-                }
-              }
-            ],
-            template_id: 'd-1858fd6c28f949c2a833ef773bcdfa6d'
-          };
-  
-          sendgrid.send(message).then(() => {
-          }).catch((err) => {
-            console.log(err);
-          });
-
-        }).catch(err => console.log(err));
+            sendgrid
+              .send(message)
+              .then(() => {})
+              .catch((err) => {
+                console.log(err);
+              });
+          })
+          .catch((err) => console.log(err));
 
         res.status(201).json({ message: `Successfully saved the provided report.`, data: report });
       })
@@ -758,54 +770,59 @@ app.post('/api/eventregistrations', (req, res) => {
   } else {
     Database.addEventRegistration(req.body.registrationData)
       .then((registration) => {
+        Database.getEventRegistrationById(registration._id)
+          .then((registration) => {
+            const message = {
+              from: {
+                email: 'eventhoodapp@gmail.com',
+              },
+              personalizations: [
+                {
+                  to: [
+                    {
+                      email: `${registration.user.email}`,
+                    },
+                  ],
+                  dynamic_template_data: {
+                    username: `${registration.user.displayName}`,
+                    eventHost: `${registration.event.host.displayName}`,
+                    eventName: `${registration.event.name}`,
+                    eventDate: `${registration.event.startTime}`,
+                  },
+                },
+              ],
+              template_id: 'd-ca6ce57e20fd4ea196981a56716951f4',
+            };
 
-        Database.getEventRegistrationById(registration._id).then((registration) => {
+            sendgrid
+              .send(message)
+              .then(() => {})
+              .catch((err) => {
+                console.log(err);
+              });
+          })
+          .catch((err) => console.log(err));
 
-          const message = {
-            from: {
-              email: "eventhoodapp@gmail.com"
-            },
-            personalizations: [
-              {
-                to: [
-                  {
-                    email: `${registration.user.email}`
-                  }
-                ],
-                dynamic_template_data: {
-                  username: `${registration.user.displayName}`,
-                  eventHost: `${registration.event.host.displayName}`,
-                  eventName: `${registration.event.name}`,
-                  eventDate: `${registration.event.startTime}`
-                }
-              }
-            ],
-            template_id: 'd-ca6ce57e20fd4ea196981a56716951f4'
-          };
-  
-          sendgrid.send(message).then(() => {
-          }).catch((err) => {
-            console.log(err);
-          });
-
-        }).catch(err => console.log(err));
-
-        res.status(201).json({ message: `Successfull saved the event registration.`, data: registration });
+        res
+          .status(201)
+          .json({ message: `Successfull saved the event registration.`, data: registration });
       })
       .catch((err) => res.status(500).json({ error: err }));
   }
 });
 
-app.get("/api/eventregistrations/:id", (req, res) => {
+app.get('/api/eventregistrations/:id', (req, res) => {
   const { id } = req.params;
 
   if (!id) {
-    res.status(400).json({ error: "You must include a registration id." });
+    res.status(400).json({ error: 'You must include a registration id.' });
   }
 
-  Database.getEventRegistrationById(id).then((registration) => {
-    res.status(200).json({ reg: registration });
-  }).catch(err => res.status(500).json({ error: err }));
+  Database.getEventRegistrationById(id)
+    .then((registration) => {
+      res.status(200).json({ reg: registration });
+    })
+    .catch((err) => res.status(500).json({ error: err }));
 });
 
 // Get all event registrations by user.
@@ -826,26 +843,39 @@ app.get('/api/eventregistrations/user/:id', (req, res) => {
     .catch((err) => res.status(500).json({ error: err }));
 });
 
-app.delete("/api/eventregistrations/:id", (req, res) => {
+app.delete('/api/eventregistrations/:id', (req, res) => {
   const receivedAuth = req.headers.authorization;
   const token = receivedAuth?.split(' ')[1];
 
-  getAuth().verifyIdToken(token).then((_token) => {
-    const { id } = req.params;
+  getAuth()
+    .verifyIdToken(token)
+    .then((_token) => {
+      const { id } = req.params;
 
-    Database.getUUIDFromEventRegistration(id).then((uuid) => {
-
-      if (_token.uid == uuid) {
-        Database.deleteEventRegistration(id).then((r) => {
-          res.status(200).json({ message: r });
-        }).catch(err => res.status(500).json({ error: err }));
-      } else {
-        res.status(400).json({ error: `You may only remove a registration for your own account.` });
-      }
-
-    }).catch(err => res.status(500).json({ error: err }));
-
-  }).catch(err => res.status(400).json({ error: `You must provide your Firebase id token as the authorization header.`, errorSpecific: err }));
+      Database.getUUIDFromEventRegistration(id)
+        .then((uuid) => {
+          if (_token.uid == uuid) {
+            Database.deleteEventRegistration(id)
+              .then((r) => {
+                res.status(200).json({ message: r });
+              })
+              .catch((err) => res.status(500).json({ error: err }));
+          } else {
+            res
+              .status(400)
+              .json({ error: `You may only remove a registration for your own account.` });
+          }
+        })
+        .catch((err) => res.status(500).json({ error: err }));
+    })
+    .catch((err) =>
+      res
+        .status(400)
+        .json({
+          error: `You must provide your Firebase id token as the authorization header.`,
+          errorSpecific: err,
+        })
+    );
 });
 
 // Get all event registrations by event.

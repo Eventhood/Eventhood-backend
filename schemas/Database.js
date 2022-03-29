@@ -1120,7 +1120,12 @@ module.exports.getFAQQuestionByTopic = (topicID) => {
 module.exports.getAllUserRegisteredEvents = (uID) => {
   return new Promise((resolve, reject) => {
     EventRegistrations.find({ user: uID })
-      .populate('event', ['name', 'startTime'])
+      .select('-user')
+      .populate({
+        path: 'event',
+        select: 'name startTime host category location description maxParticipants',
+        populate: [{ path: 'host', select: 'displayName' }, { path: 'category' }],
+      })
       .exec()
       .then((registeredEvents) => {
         resolve(registeredEvents);
@@ -1151,7 +1156,7 @@ module.exports.getEventRegistrationById = (eRId) => {
     EventRegistrations.findOne({ _id: eRId })
       .populate({
         path: 'event',
-        select: 'name startTime host',
+        select: 'name startTime host category location description maxParticipants',
         populate: { path: 'host', select: 'displayName' },
       })
       .populate('user', ['displayName', 'email'])
