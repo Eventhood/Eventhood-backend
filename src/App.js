@@ -24,6 +24,8 @@ adminSDK.initializeApp({
 });
 
 const Database = require('../schemas/Database');
+const { resolve } = require('path');
+const { rejects } = require('assert');
 
 const geocodingAPIURL = process.env.GEOCODE_API;
 
@@ -822,6 +824,28 @@ app.get('/api/eventregistrations/user/:id', (req, res) => {
       }
     })
     .catch((err) => res.status(500).json({ error: err }));
+});
+
+app.delete("/api/eventregistrations/:id", (req, res) => {
+  const receivedAuth = req.headers.authorization;
+  const token = receivedAuth?.split(' ')[1];
+
+  getAuth().verifyIdToken(token).then((_token) => {
+    const { id } = req.params;
+
+    Database.getUUIDFromEventRegistration(id).then((uuid) => {
+
+      if (_token.uid == uuid) {
+        Database.deleteEventRegistration(id).then((r) => {
+          res.status(200).json({ message: r });
+        }).catch(err => res.status(500).json({ error: err }));
+      } else {
+        res.status(400).json({ error: `You may only remove a registration for your own account.` });
+      }
+
+    }).catch(err => res.status(500).json({ error: err }));
+
+  }).catch(err => res.status(400).json({ error: `You must provide your Firebase id token as the authorization header.`, errorSpecific: err }));
 });
 
 // Get all event registrations by event.

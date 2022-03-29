@@ -155,8 +155,8 @@ let eventsSchema = new Schema({
     },
     address: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   category: {
     type: Schema.Types.ObjectId,
@@ -409,11 +409,16 @@ module.exports.getUserById = (targetUuid) => {
 
 module.exports.getUserByObjectId = (uoid) => {
   return new Promise((resolve, reject) => {
-    Users.findOne({ _id: uoid }).exec().then((user) => {
-      resolve(user);
-    }).catch((err) => { reject(err); });
+    Users.findOne({ _id: uoid })
+      .exec()
+      .then((user) => {
+        resolve(user);
+      })
+      .catch((err) => {
+        reject(err);
+      });
   });
-}
+};
 
 // Get all users
 module.exports.getUsers = () => {
@@ -431,11 +436,14 @@ module.exports.getUsers = () => {
 // Update the user.
 module.exports.updateUser = (userId, userData) => {
   return new Promise((resolve, reject) => {
-    Users.updateOne({ $or: [ { '_id': userId }, { 'uuid': userId } ] }, { $set: userData }).exec().then((updatedUser) => {
-      resolve(updatedUser);
-    }).catch((err) => reject(err));
+    Users.updateOne({ $or: [{ _id: userId }, { uuid: userId }] }, { $set: userData })
+      .exec()
+      .then((updatedUser) => {
+        resolve(updatedUser);
+      })
+      .catch((err) => reject(err));
   });
-}
+};
 
 // Follow Functions
 /**
@@ -664,8 +672,13 @@ module.exports.findContactRequestsByUser = (userId, includeClosed, includeClaime
   return new Promise((resolve, reject) => {
     let queryFilter = { user: userId };
 
-    if (includeClaimed) { queryFilter.handlingStaff = {}; queryFilter.handlingStaff.claimed = includeClaimed }
-    if (includeClosed) { queryFilter.requestOpen = includeClosed }
+    if (includeClaimed) {
+      queryFilter.handlingStaff = {};
+      queryFilter.handlingStaff.claimed = includeClaimed;
+    }
+    if (includeClosed) {
+      queryFilter.requestOpen = includeClosed;
+    }
 
     ContactRequests.find(queryFilter)
       .sort('requestDate')
@@ -773,7 +786,7 @@ module.exports.getAllEventsbyUserID = (userID) => {
     Events.find({ host: userID })
       .sort('name')
       .populate('category')
-      .populate('host', ['accountHandle'])
+      .populate('host', ['accountHandle', 'displayName', 'photoURL'])
       .exec()
       .then((events) => {
         resolve(events);
@@ -789,7 +802,7 @@ module.exports.getSingleEventbyEventID = (eventID) => {
   return new Promise((resolve, reject) => {
     Events.findOne({ _id: eventID })
       .populate('category')
-      .populate('host', ['accountHandle', 'photoURL'])
+      .populate('host', ['accountHandle', 'photoURL', 'displayName'])
       .exec()
       .then((events) => {
         resolve(events);
@@ -1107,6 +1120,7 @@ module.exports.getFAQQuestionByTopic = (topicID) => {
 module.exports.getAllUserRegisteredEvents = (uID) => {
   return new Promise((resolve, reject) => {
     EventRegistrations.find({ user: uID })
+      .populate('event', ['name', 'startTime'])
       .exec()
       .then((registeredEvents) => {
         resolve(registeredEvents);
@@ -1134,11 +1148,20 @@ module.exports.addEventRegistration = (registrationData) => {
 // Get an event registration by id.
 module.exports.getEventRegistrationById = (eRId) => {
   return new Promise((resolve, reject) => {
-    EventRegistrations.findOne({ _id: eRId }).populate({ path: "event", select: "name startTime host", populate: { path: 'host', select: 'displayName' } }).populate('user', [ 'displayName', 'email' ]).exec().then((registration) => {
-      resolve(registration);
-    }).catch(err => reject(err));
+    EventRegistrations.findOne({ _id: eRId })
+      .populate({
+        path: 'event',
+        select: 'name startTime host',
+        populate: { path: 'host', select: 'displayName' },
+      })
+      .populate('user', ['displayName', 'email'])
+      .exec()
+      .then((registration) => {
+        resolve(registration);
+      })
+      .catch((err) => reject(err));
   });
-}
+};
 
 //Remove User from an Event
 module.exports.deleteEventRegistration = (registrationId) => {
@@ -1154,7 +1177,21 @@ module.exports.deleteEventRegistration = (registrationId) => {
   });
 };
 
+// Get the user's UUID from an event registration.
+module.exports.getUUIDFromEventRegistration = (rId) => {
+  return new Promise((resolve, reject) => {
+    EventRegistrations.findOne({ _id: rId })
+      .select('user')
+      .populate('user', ['uuid'])
+      .exec()
+      .then((r) => {
+        resolve(r.user.uuid);
+      })
+      .catch((err) => reject(err));
+  });
+};
+
 // Count event registrations by event.
-module.exports.countEventRegistrationsByEvent = async eId => {
+module.exports.countEventRegistrationsByEvent = async (eId) => {
   return await EventRegistrations.countDocuments({ event: eId }).exec();
-}
+};

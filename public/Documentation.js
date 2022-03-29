@@ -618,20 +618,20 @@ const routes = [
         "description": String,
         "startTime": Date
       }
-    }`
+    }`,
   },
   {
     type: 'Event',
     method: 'DELETE',
-    route: "/api/events/:id",
-    expectedHeader: "Provide the following data to the API.",
+    route: '/api/events/:id',
+    expectedHeader: 'Provide the following data to the API.',
     expected: `:id - The MongoDB ObjectId of the target event.`,
     resultHeader: `Returns a success or error message.`,
     result: `
     {
       "message": String?,
       "error": String?
-    }`
+    }`,
   },
   {
     type: 'Event Category',
@@ -807,6 +807,98 @@ const routes = [
           "name": String
         }
       ]
+    }`,
+  },
+  {
+    type: 'Event Registration',
+    method: 'POST',
+    route: '/api/eventregistrations',
+    expectedHeader: 'Provide the following data to the API.',
+    expected: `
+    {
+      "registrationData": {
+        "event": ObjectId,
+        "user": ObjectId
+      }
+    }`,
+    resultHeader: 'Returns the newly-created Event Registration object.',
+    result: `
+    {
+      "message": String?,
+      "error": String?,
+      "data": {
+        "_id": ObjectId,
+        "event": ObjectId,
+        "user": ObjectId,
+        "registered": Date
+      }
+    }`,
+  },
+  {
+    type: 'Event Registration',
+    method: 'GET',
+    route: '/api/eventregistrations/:id',
+    expectedHeader: 'Provide the following data to the API.',
+    expected: `:id - The MongoDB ObjectId of the event registration.`,
+    resultHeader: 'Returns the matching Event Registration object.',
+    result: `
+    {
+      "message": String?,
+      "error": String?,
+      "data": {
+        "_id": ObjectId
+        "event": {
+          "_id": ObjectId,
+          "name": String,
+          "startTime": Date,
+          "host": {
+            "displayName": String
+          }
+        },
+        "user": {
+          "_id": ObjectId,
+          "displayName": String,
+          "email": String
+        },
+        "registered": Date
+      }
+    }`,
+  },
+  {
+    type: 'Event Registration',
+    method: 'GET',
+    route: '/api/eventregistrations/user/:id',
+    expectedHeader: 'Provide the following data to the API.',
+    expected: `:id - The MongoDB ObjectId of the user.`,
+    resultHeader: 'Returns an array of all event registrations belonging to the provided user.',
+    result: `
+    {
+      "message": String?,
+      "error": String?,
+      "data": [
+        {
+          "_id": ObjectId,
+          "event": {
+            "name": String,
+            "startTime": Date
+          },
+          "user": ObjectId,
+          "registered": Date
+        }
+      ]
+    }`,
+  },
+  {
+    type: 'Event Registration',
+    method: 'DELETE',
+    route: '/api/eventregistrations/:id',
+    expectedHeader: 'Provide the following data to the API.',
+    expected: `:id - The MongoDB ObjectId of the event registration to be deleted.`,
+    resultHeader: 'Returns a confirmation or error message.',
+    result: `
+    {
+      "message": String?,
+      "error": String?
     }`,
   },
 ];
