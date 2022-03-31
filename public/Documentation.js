@@ -530,6 +530,42 @@ const routes = [
   {
     type: 'Event',
     method: 'GET',
+    route: '/api/events/category/:id',
+    expectedHeader: 'Provide the following data to the API.',
+    expected: `:id - The MongoDB ObjectId of the target category.`,
+    resultHeader: 'Returns an array of event objects which match the provided category.',
+    result: `
+    {
+      "message": String?,
+      "error": String?,
+      "data": [
+        {
+          "_id": ObjectId,
+          "name": String,
+          "host": {
+            "accountHandle": String,
+            "displayName": String,
+            "photoURL": String
+          },
+          "location": {
+            "lat": Number,
+            "lon": Number,
+            "address": String
+          },
+          "category": {
+            "name": String,
+            "header": String
+          },
+          "maxParticipants": Number,
+          "description": String,
+          "startTime": Date
+        }
+      ]
+    }`,
+  },
+  {
+    type: 'Event',
+    method: 'GET',
     route: '/api/events/single/:id',
     expectedHeader: 'Provide the following data to the API.',
     expected: `:id - The MongoDB ObjectId of the target Event.`,

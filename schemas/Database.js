@@ -791,7 +791,7 @@ module.exports.getEventsByCategory = (catId) => {
     Events.find({ category: catId, startTime: { $gte: Date.now() } })
       .sort('name')
       .populate('category')
-      .populate('host', ['accountHandle'])
+      .populate('host', ['accountHandle', 'photoURL', 'displayName'])
       .exec()
       .then((e) => resolve(e))
       .catch((err) => reject(err));
