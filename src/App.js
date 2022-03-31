@@ -117,23 +117,6 @@ app.get('/api/users/:uuid', (req, res) => {
       // Handle error
       res.status(401).json({ error: err });
     });
-
-  // const { uuid } = req.params;
-
-  // Database.getUserById(uuid)
-  //   .then((user) => {
-  //     if (user) {
-  //       res.status(200).json({
-  //         message: `User found successfully.`,
-  //         data: user,
-  //       });
-  //     } else {
-  //       res.status(404).json({ error: `Could not find any matching users.` });
-  //     }
-  //   })
-  //   .catch((err) => {
-  //     res.status(500).json({ error: err });
-  //   });
 });
 
 // Get all users.
@@ -193,12 +176,10 @@ app.post('/api/follows', (req, res) => {
               res.status(400).json({ error: err });
             });
         } else {
-          res
-            .status(401)
-            .json({
-              error:
-                'Permissions do not meet required access for functionality. Please contact support.',
-            });
+          res.status(401).json({
+            error:
+              'Permissions do not meet required access for functionality. Please contact support.',
+          });
         }
       }
     })
@@ -510,6 +491,20 @@ app.get('/api/events', (req, res) => {
     .catch((err) => {
       res.status(500).json({ error: err });
     });
+});
+
+// Get events by category ObjectId.
+app.get('/api/events/category/:id', (req, res) => {
+  const { id } = req.params;
+
+  Database.getEventsByCategory(id)
+    .then((e) => {
+      res.status(200).json({
+        message: 'Successfully retrieved all events belonging to the provided category.',
+        data: e.length > 0 ? e : null,
+      });
+    })
+    .catch((err) => res.status(500).json({ error: err }));
 });
 
 // Get event by event ObjectId (_id).
@@ -869,12 +864,10 @@ app.delete('/api/eventregistrations/:id', (req, res) => {
         .catch((err) => res.status(500).json({ error: err }));
     })
     .catch((err) =>
-      res
-        .status(400)
-        .json({
-          error: `You must provide your Firebase id token as the authorization header.`,
-          errorSpecific: err,
-        })
+      res.status(400).json({
+        error: `You must provide your Firebase id token as the authorization header.`,
+        errorSpecific: err,
+      })
     );
 });
 

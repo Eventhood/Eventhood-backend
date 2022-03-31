@@ -766,7 +766,7 @@ module.exports.getAllContactTopics = () => {
  */
 module.exports.getAllEvents = () => {
   return new Promise((resolve, reject) => {
-    Events.find({})
+    Events.find({ startTime: { $gte: Date.now() } })
       .sort('name')
       .populate('category')
       .populate('host', ['accountHandle'])
@@ -777,6 +777,24 @@ module.exports.getAllEvents = () => {
       .catch((err) => {
         reject(err);
       });
+  });
+};
+
+/**
+ * Get all events in the Mongo database which are part of a specified category.
+ *
+ * @param {ObjectId} catId The MongoDB ObjectId of the category to find events for.
+ * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, host: { accountHandle: String }, name: String, location: { lat: Number, lon: Number, address: String }, category: { name: String }, maxParticipants: Number, description: String, startTime: Date ]} An array of event objects.
+ */
+module.exports.getEventsByCategory = (catId) => {
+  return new Promise((resolve, reject) => {
+    Events.find({ category: catId, startTime: { $gte: Date.now() } })
+      .sort('name')
+      .populate('category')
+      .populate('host', ['accountHandle'])
+      .exec()
+      .then((e) => resolve(e))
+      .catch((err) => reject(err));
   });
 };
 
@@ -1124,7 +1142,7 @@ module.exports.getAllUserRegisteredEvents = (uID) => {
       .populate({
         path: 'event',
         select: 'name startTime host category location description maxParticipants',
-        populate: [{ path: 'host', select: 'displayName' }, { path: 'category' }],
+        populate: [{ path: 'host', select: 'accountHandle' }, { path: 'category' }],
       })
       .exec()
       .then((registeredEvents) => {
@@ -1157,9 +1175,9 @@ module.exports.getEventRegistrationById = (eRId) => {
       .populate({
         path: 'event',
         select: 'name startTime host category location description maxParticipants',
-        populate: { path: 'host', select: 'displayName' },
+        populate: [{ path: 'host', select: 'accountHandle' }, { path: 'category' }],
       })
-      .populate('user', ['displayName', 'email'])
+      .populate('user', ['accountHandle', 'email'])
       .exec()
       .then((registration) => {
         resolve(registration);
