@@ -507,6 +507,21 @@ app.get('/api/events/category/:id', (req, res) => {
     .catch((err) => res.status(500).json({ error: err }));
 });
 
+// Get events by search query.
+app.get('/api/events/search', (req, res) => {
+  if (req.query.query) {
+    Database.getEventsBySearch(req.query.query).then((e) => {
+      if (e.length > 0) {
+        res.status(200).json({ message: `Retrieved all matching event results.`, data: e });
+      } else {
+        res.status(200).json({ message: `No results were found.` });
+      }
+    });
+  } else {
+    res.status(400).json({ error: 'There was no search query provided.' });
+  }
+});
+
 // Get event by event ObjectId (_id).
 app.get('/api/events/single/:id', async (req, res) => {
   const { id } = req.params;

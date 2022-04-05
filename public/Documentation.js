@@ -631,6 +631,40 @@ const routes = [
   },
   {
     type: 'Event',
+    method: 'GET',
+    route: '/api/events/search?query',
+    expectedHeader: 'Provide the following data to the API.',
+    expected: `query - The search query string to search event names for.`,
+    resultHeader: 'Returns an array of all found event objects.',
+    result: `
+    {
+      "message": String?,
+      "error": String?,
+      "data": [
+        {
+          "_id": ObjectId,
+          "host": {
+            "accountHandle": String
+          },
+          "name": String,
+          "location": {
+            "lat": Number,
+            "lon": Number,
+            "address": String
+          },
+          "category": {
+            "name": String,
+            "header": String
+          },
+          "maxParticipants": Number,
+          "description": String,
+          "startTime": Date
+        }
+      ]?
+    }`,
+  },
+  {
+    type: 'Event',
     method: 'PUT',
     route: '/api/events/:id',
     expectedHeader: 'Provide the following data to the API.',

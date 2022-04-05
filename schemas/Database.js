@@ -831,6 +831,18 @@ module.exports.getSingleEventbyEventID = (eventID) => {
   });
 };
 
+// Get events by search.
+module.exports.getEventsBySearch = (searchQuery) => {
+  return new Promise((resolve, reject) => {
+    Events.find({ name: { $regex: searchQuery, $options: 'i' } })
+      .populate('category')
+      .populate('host', ['accountHandle', 'photoURL', 'displayName'])
+      .exec()
+      .then((events) => resolve(events))
+      .catch((err) => reject(err));
+  });
+};
+
 // Create event
 module.exports.addEvent = (eventData) => {
   return new Promise((resolve, reject) => {
