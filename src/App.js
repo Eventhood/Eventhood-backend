@@ -4,16 +4,28 @@ const dotenv = require('dotenv');
 const path = require('path');
 const fetch = require('node-fetch');
 
+const sendgrid = require('@sendgrid/mail');
+const adminSDK = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.static(path.join(__dirname, '../public')));
 app.engine('html', require('ejs').renderFile);
-app.set("views", path.join(__dirname, "../public"));
+app.set('views', path.join(__dirname, '../public'));
 
 dotenv.config();
 
+const sdkCreds = JSON.parse(process.env.FIREBASE_ADMIN_STUFF);
+
+adminSDK.initializeApp({
+  credential: adminSDK.cert(sdkCreds),
+});
+
 const Database = require('../schemas/Database');
+const { resolve } = require('path');
+const { rejects } = require('assert');
 
 const geocodingAPIURL = process.env.GEOCODE_API;
 
@@ -34,6 +46,32 @@ app.post('/api/users', (req, res) => {
   } else {
     Database.addUser(req.body.userData)
       .then((user) => {
+        const message = {
+          from: {
+            email: 'eventhoodapp@gmail.com',
+          },
+          personalizations: [
+            {
+              to: [
+                {
+                  email: `${req.body.userData.email}`,
+                },
+              ],
+              dynamic_template_data: {
+                username: `${req.body.userData.displayName}`,
+              },
+            },
+          ],
+          template_id: 'd-13981076ca2a4681a3df228f95f04347',
+        };
+
+        sendgrid
+          .send(message)
+          .then(() => {})
+          .catch((err) => {
+            console.log(err);
+          });
+
         res.status(201).json({ message: `Successfully saved user data.`, data: user });
       })
       .catch((err) => {
@@ -44,21 +82,40 @@ app.post('/api/users', (req, res) => {
 
 // Find a specific user's data by their Firebase UUID.
 app.get('/api/users/:uuid', (req, res) => {
-  const { uuid } = req.params;
+  // Authentication Route for Security
+  // idToken comes from the client app
+  const receivedAuth = req.headers.authorization;
+  const token = receivedAuth?.split(' ')[1];
 
-  Database.getUserById(uuid)
-    .then((user) => {
-      if (user) {
-        res.status(200).json({
-          message: `User found successfully.`,
-          data: user,
-        });
+  getAuth()
+    .verifyIdToken(token)
+    .then((decodedToken) => {
+      const uid = decodedToken.uid;
+
+      const { uuid } = req.params;
+
+      if (uid == uuid) {
+        Database.getUserById(uuid)
+          .then((user) => {
+            if (user) {
+              res.status(200).json({
+                message: `User found successfully.`,
+                data: user,
+              });
+            } else {
+              res.status(404).json({ error: `Could not find any matching users.` });
+            }
+          })
+          .catch((err) => {
+            res.status(500).json({ error: err });
+          });
       } else {
-        res.status(404).json({ error: `Could not find any matching users.` });
+        res.status(401).json({ error: 'Unauthenticated User, access denied' });
       }
     })
     .catch((err) => {
-      res.status(500).json({ error: err });
+      // Handle error
+      res.status(401).json({ error: err });
     });
 });
 
@@ -77,36 +134,59 @@ app.get('/api/users', (req, res) => {
 
 // Update user.
 app.put('/api/users/:id', (req, res) => {
-
   const { id } = req.params;
-  
-  if (!req.body.userData) { res.status(400).json({ error: `User data must be provided.` }); }
-  else {
 
-    Database.updateUser(id, req.body.userData).then(uUser => {
-      res.status(200).json({ message: `The user has been successfully updated.`, data: uUser });
-    }).catch((err) => {
-      res.status(500).json({ error: err });
-    });
-
+  if (!req.body.userData) {
+    res.status(400).json({ error: `User data must be provided.` });
+  } else {
+    Database.updateUser(id, req.body.userData)
+      .then((uUser) => {
+        res.status(200).json({ message: `The user has been successfully updated.`, data: uUser });
+      })
+      .catch((err) => {
+        res.status(500).json({ error: err });
+      });
   }
-
 });
 
 // Follow Routes
 // Register a new follow between two users in the Mongo database.
 app.post('/api/follows', (req, res) => {
-  if (!req.body.followData) {
-    res.status(400).json({ error: `Follow data must be provided.` });
-  } else {
-    Database.addFollow(req.body.followData)
-      .then((follow) => {
-        res.status(201).json({ message: `Successfully registered new user follow.`, data: follow });
-      })
-      .catch((err) => {
-        res.status(400).json({ error: err });
-      });
-  }
+  const receivedAuth = req.headers.authorization;
+  const token = receivedAuth?.split(' ')[1];
+
+  // idToken comes from the client app
+  getAuth()
+    .verifyIdToken(token)
+    .then((decodedToken) => {
+      const uid = decodedToken.uid;
+
+      //Compare the user that is following towards the uid from decodedToken
+      if (!req.body.followData) {
+        res.status(400).json({ error: `Follow data must be provided.` });
+      } else {
+        if (req.body.followData.followedBy.uuid == uid) {
+          Database.addFollow(req.body.followData)
+            .then((follow) => {
+              res
+                .status(201)
+                .json({ message: `Successfully registered new user follow.`, data: follow });
+            })
+            .catch((err) => {
+              res.status(400).json({ error: err });
+            });
+        } else {
+          res.status(401).json({
+            error:
+              'Permissions do not meet required access for functionality. Please contact support.',
+          });
+        }
+      }
+    })
+    .catch((err) => {
+      // Handle error
+      res.status(401).json({ error: err });
+    });
 });
 
 // Get all users followed by the user with the provided Mongo ObjectId (_id).
@@ -212,6 +292,35 @@ app.post('/api/contactrequests', (req, res) => {
   } else {
     Database.addContactRequest(req.body.contactRequestData)
       .then((requestData) => {
+        Database.getUserByObjectId(req.body.contactRequestData.user)
+          .then((u) => {
+            const message = {
+              from: {
+                email: 'eventhoodapp@gmail.com',
+              },
+              personalizations: [
+                {
+                  to: [
+                    {
+                      email: `${u.email}`,
+                    },
+                  ],
+                  dynamic_template_data: {
+                    username: `${u.displayName}`,
+                    requestId: `${requestData._id}`,
+                  },
+                },
+              ],
+              template_id: 'd-f123a0fb5ffd4ca39c7a231cf5daa4a3',
+            };
+
+            sendgrid
+              .send(message)
+              .then(() => {})
+              .catch((err) => console.log(err));
+          })
+          .catch((err) => console.log(err));
+
         res
           .status(201)
           .json({ message: `The contact request was sent successfully.`, data: requestData });
@@ -251,8 +360,9 @@ app.get('/api/contactrequests/single/:id', (req, res) => {
 // Find all contact requests submitted by a specific user.
 app.get('/api/contactrequests/user/:id', (req, res) => {
   const { id } = req.params;
+  const { includeClosed, includeClaimed } = req.query;
 
-  Database.findContactRequestsByUser(id)
+  Database.findContactRequestsByUser(id, includeClosed, includeClaimed)
     .then((requests) => {
       if (requests.length > 0) {
         res.status(200).json({
@@ -264,6 +374,7 @@ app.get('/api/contactrequests/user/:id', (req, res) => {
       }
     })
     .catch((err) => {
+      console.log(err);
       res.status(500).json({ error: err });
     });
 });
@@ -334,43 +445,31 @@ app.post('/api/events', (req, res) => {
     let event = req.body.eventData;
 
     // Take string location, plug it into geocoding api
-    fetch(`${geocodingAPIURL}${event.location.replace(' ', '+')}`, { method: 'GET' })
+    fetch(`${geocodingAPIURL}${event.location.replace(' ', '%20')}`, { method: 'GET' })
       .then((data) => {
-        console.log(`Data: ${JSON.stringify(data)}`);
         return data.json();
       })
       .then((locationData) => {
-        console.log(`LOCATION DATA: ${JSON.stringify(locationData.results[0])}`);
         // Check to make sure that the location is valid (has all of the basic fields).
-        if (
-          locationData.results[0].locations[0].street === '' &&
-          locationData.results[0].locations[0].adminArea6 === '' &&
-          locationData.results[0].locations[0].adminArea5 === '' &&
-          locationData.results[0].locations[0].adminArea4 !== '' &&
-          locationData.results[0].locations[0].adminArea3 === ''
-        ) {
-          res.status(400).json({ error: `The location provided could not be found.` });
-        } else {
-          // Store geocoding result to variable
-          let lData = {
-            lat: locationData.results[0].locations[0].latLng.lat,
-            lon: locationData.results[0].locations[0].latLng.lng,
-          };
+        let lData = {
+          lat: locationData.features[0].properties.lat,
+          lon: locationData.features[0].properties.lon,
+          address: locationData.features[0].properties.formatted,
+        };
 
-          // Update eventData location to have the lat and long
-          event.location = lData;
+        // Update eventData location to have the lat and long
+        event.location = lData;
 
-          // Pass the updated eventData to the addEvent function.
-          Database.addEvent(event)
-            .then((savedEvent) => {
-              res
-                .status(201)
-                .json({ message: `The event was successfully registered.`, data: savedEvent });
-            })
-            .catch((err) => {
-              res.status(500).json({ error: err });
-            });
-        }
+        // Pass the updated eventData to the addEvent function.
+        Database.addEvent(event)
+          .then((savedEvent) => {
+            res
+              .status(201)
+              .json({ message: `The event was successfully registered.`, data: savedEvent });
+          })
+          .catch((err) => {
+            res.status(500).json({ error: err });
+          });
       })
       .catch((err) => {
         console.log(`ERROR: ${err}`);
@@ -394,15 +493,54 @@ app.get('/api/events', (req, res) => {
     });
 });
 
+// Get events by category ObjectId.
+app.get('/api/events/category/:id', (req, res) => {
+  const { id } = req.params;
+
+  Database.getEventsByCategory(id)
+    .then((e) => {
+      res.status(200).json({
+        message: 'Successfully retrieved all events belonging to the provided category.',
+        data: e.length > 0 ? e : null,
+      });
+    })
+    .catch((err) => res.status(500).json({ error: err }));
+});
+
+// Get events by search query.
+app.get('/api/events/search', (req, res) => {
+  if (req.query.query) {
+    Database.getEventsBySearch(req.query.query).then((e) => {
+      if (e.length > 0) {
+        res.status(200).json({ message: `Retrieved all matching event results.`, data: e });
+      } else {
+        res.status(200).json({ message: `No results were found.` });
+      }
+    });
+  } else {
+    res.status(400).json({ error: 'There was no search query provided.' });
+  }
+});
+
 // Get event by event ObjectId (_id).
-app.get('/api/events/single/:id', (req, res) => {
+app.get('/api/events/single/:id', async (req, res) => {
   const { id } = req.params;
 
   Database.getSingleEventbyEventID(id)
-    .then((event) => {
-      res.status(200).json({ message: `Successfully found the requested event.`, data: event });
+    .then(async (event) => {
+      let d;
+
+      if (event.maxParticipants >= 1) {
+        let tE = JSON.parse(JSON.stringify(event));
+        d = { ...tE, currentlyRegistered: await Database.countEventRegistrationsByEvent(id) };
+      } else {
+        d = event;
+      }
+
+      res.status(200).json({ message: `Successfully found the requested event.`, data: d });
     })
     .catch((err) => {
+      console.log(err);
       res.status(500).json({ error: err });
     });
 });
@@ -425,6 +563,71 @@ app.get('/api/events/user/:id', (req, res) => {
     .catch((err) => {
       res.status(500).json({ error: err });
     });
+});
+
+// Update the target event with the provided changes.
+app.put('/api/events/:id', (req, res) => {
+  const { id } = req.params;
+
+  if (!req.body.eventData) {
+    res.status(400).json({ error: `You must provide event data to update.` });
+  } else {
+    //Adding in new event for update
+    let event = req.body.eventData;
+
+    // Take new string location, plug it into geocoding api
+    // Replace any spaces with %20 for api
+    if (event.location) {
+      fetch(`${geocodingAPIURL}${event.location.replace(' ', '%20')}`, { method: 'GET' })
+        .then((data) => {
+          return data.json();
+        })
+        .then((locationData) => {
+          // Check to make sure that the location is valid (has all of the basic fields).
+          let lData = {
+            lat: locationData.features[0].properties.lat,
+            lon: locationData.features[0].properties.lon,
+            address: locationData.features[0].properties.formatted,
+          };
+
+          // Update eventData location to have the lat and long
+          event.location = lData;
+
+          //Pass the new updated event data to the updateEvent function
+          Database.updateEvent(id, event)
+            .then((updatedEvent) => {
+              res
+                .status(200)
+                .json({ message: `The event has been successfully updated.`, data: updatedEvent });
+            })
+            .catch((err) => res.status(500).json({ error: err }));
+        })
+        .catch((err) => {
+          console.log(`ERROR: ${err}`);
+          res.status(500).json({ error: err });
+        });
+    } else {
+      //Pass the new updated event data to the updateEvent function
+      Database.updateEvent(id, event)
+        .then((updatedEvent) => {
+          res
+            .status(200)
+            .json({ message: `The event has been successfully updated.`, data: updatedEvent });
+        })
+        .catch((err) => res.status(500).json({ error: err }));
+    }
+  }
+});
+
+// Remove the target event.
+app.delete('/api/events/:id', (req, res) => {
+  const { id } = req.params;
+
+  Database.deleteEvent(id)
+    .then(() => {
+      res.status(200).json({ message: `The event has been successfully deleted.` });
+    })
+    .catch((err) => res.status(500).json({ error: err }));
 });
 
 // EventCategory Routes
@@ -485,6 +688,36 @@ app.post('/api/eventreports', (req, res) => {
   } else {
     Database.addEventReport(req.body.reportData)
       .then((report) => {
+        Database.getUserByObjectId(req.body.reportData.reportedBy)
+          .then((user) => {
+            const message = {
+              from: {
+                email: 'eventhoodapp@gmail.com',
+              },
+              personalizations: [
+                {
+                  to: [
+                    {
+                      email: `${user.email}`,
+                    },
+                  ],
+                  dynamic_template_data: {
+                    username: `${user.displayName}`,
+                  },
+                },
+              ],
+              template_id: 'd-1858fd6c28f949c2a833ef773bcdfa6d',
+            };
+
+            sendgrid
+              .send(message)
+              .then(() => {})
+              .catch((err) => {
+                console.log(err);
+              });
+          })
+          .catch((err) => console.log(err));
+
         res.status(201).json({ message: `Successfully saved the provided report.`, data: report });
       })
       .catch((err) => {
@@ -547,12 +780,59 @@ app.post('/api/eventregistrations', (req, res) => {
   } else {
     Database.addEventRegistration(req.body.registrationData)
       .then((registration) => {
+        Database.getEventRegistrationById(registration._id)
+          .then((registration) => {
+            const message = {
+              from: {
+                email: 'eventhoodapp@gmail.com',
+              },
+              personalizations: [
+                {
+                  to: [
+                    {
+                      email: `${registration.user.email}`,
+                    },
+                  ],
+                  dynamic_template_data: {
+                    username: `${registration.user.displayName}`,
+                    eventHost: `${registration.event.host.displayName}`,
+                    eventName: `${registration.event.name}`,
+                    eventDate: `${registration.event.startTime}`,
+                  },
+                },
+              ],
+              template_id: 'd-ca6ce57e20fd4ea196981a56716951f4',
+            };
+
+            sendgrid
+              .send(message)
+              .then(() => {})
+              .catch((err) => {
+                console.log(err);
+              });
+          })
+          .catch((err) => console.log(err));
+
         res
           .status(201)
           .json({ message: `Successfull saved the event registration.`, data: registration });
       })
       .catch((err) => res.status(500).json({ error: err }));
   }
+});
+
+app.get('/api/eventregistrations/:id', (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    res.status(400).json({ error: 'You must include a registration id.' });
+  }
+
+  Database.getEventRegistrationById(id)
+    .then((registration) => {
+      res.status(200).json({ reg: registration });
+    })
+    .catch((err) => res.status(500).json({ error: err }));
 });
 
 // Get all event registrations by user.
@@ -571,6 +851,39 @@ app.get('/api/eventregistrations/user/:id', (req, res) => {
       }
     })
     .catch((err) => res.status(500).json({ error: err }));
+});
+
+app.delete('/api/eventregistrations/:id', (req, res) => {
+  const receivedAuth = req.headers.authorization;
+  const token = receivedAuth?.split(' ')[1];
+
+  getAuth()
+    .verifyIdToken(token)
+    .then((_token) => {
+      const { id } = req.params;
+
+      Database.getUUIDFromEventRegistration(id)
+        .then((uuid) => {
+          if (_token.uid == uuid) {
+            Database.deleteEventRegistration(id)
+              .then((r) => {
+                res.status(200).json({ message: r });
+              })
+              .catch((err) => res.status(500).json({ error: err }));
+          } else {
+            res
+              .status(400)
+              .json({ error: `You may only remove a registration for your own account.` });
+          }
+        })
+        .catch((err) => res.status(500).json({ error: err }));
+    })
+    .catch((err) =>
+      res.status(400).json({
+        error: `You must provide your Firebase id token as the authorization header.`,
+        errorSpecific: err,
+      })
+    );
 });
 
 // Get all event registrations by event.
@@ -697,6 +1010,7 @@ var dbURL = process.env.MONGO_URL;
 Database.connect(dbURL)
   .then(() => {
     app.listen(PORT, () => {
+      sendgrid.setApiKey(process.env.SENDGRID_KEY);
       console.log('API is listening on port ' + PORT);
     });
   })

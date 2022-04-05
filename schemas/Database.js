@@ -153,6 +153,10 @@ let eventsSchema = new Schema({
       type: Number,
       required: true,
     },
+    address: {
+      type: String,
+      required: true,
+    },
   },
   category: {
     type: Schema.Types.ObjectId,
@@ -352,6 +356,7 @@ module.exports.connect = (conString) => {
  * displayName: String,
  * accountHandle: String,
  * photoURL: String,
+ * email: String,
  * creationTime: Date,
  * isAdministrator: Boolean
  * }} userData The data to be saved as a new user in the Mongo database.
@@ -384,6 +389,7 @@ module.exports.addUser = (userData) => {
  * displayName: String,
  * accountHandle: String,
  * photoURL: String,
+ * email: String,
  * creationTime: Date,
  * isAdministrator: Boolean
  * }>} The user document which matches the provided UUID, if Promise resolution is successful.
@@ -391,6 +397,19 @@ module.exports.addUser = (userData) => {
 module.exports.getUserById = (targetUuid) => {
   return new Promise((resolve, reject) => {
     Users.findOne({ uuid: targetUuid })
+      .exec()
+      .then((user) => {
+        resolve(user);
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+module.exports.getUserByObjectId = (uoid) => {
+  return new Promise((resolve, reject) => {
+    Users.findOne({ _id: uoid })
       .exec()
       .then((user) => {
         resolve(user);
@@ -417,11 +436,14 @@ module.exports.getUsers = () => {
 // Update the user.
 module.exports.updateUser = (userId, userData) => {
   return new Promise((resolve, reject) => {
-    Users.updateOne({ $or: [ { '_id': userId }, { 'uuid': userId } ] }, { $set: userData }).exec().then((updatedUser) => {
-      resolve(updatedUser);
-    }).catch((err) => reject(err));
+    Users.updateOne({ $or: [{ _id: userId }, { uuid: userId }] }, { $set: userData })
+      .exec()
+      .then((updatedUser) => {
+        resolve(updatedUser);
+      })
+      .catch((err) => reject(err));
   });
-}
+};
 
 // Follow Functions
 /**
@@ -642,11 +664,23 @@ module.exports.getAllContactRequests = () => {
  * Find all contact requests submitted by the user with the provided Mongo ObjectId (_id).
  *
  * @param {String} userId The Mongo ObjectId (_id) of the target user.
+ * @param {Boolean} includeClosed If closed requests should be included.
+ * @param {Boolean} includeClaimed If already claimed requests should be included.
  * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, user: Object, topic: Object, message: String, requestDate: Date }]>} An array of all contact requests where the user has an id matching the one provided, if Promise resolution is successful.
  */
-module.exports.findContactRequestsByUser = (userId) => {
+module.exports.findContactRequestsByUser = (userId, includeClosed, includeClaimed) => {
   return new Promise((resolve, reject) => {
-    ContactRequests.find({ user: userId })
+    let queryFilter = { user: userId };
+
+    if (includeClaimed) {
+      queryFilter.handlingStaff = {};
+      queryFilter.handlingStaff.claimed = includeClaimed;
+    }
+    if (includeClosed) {
+      queryFilter.requestOpen = includeClosed;
+    }
+
+    ContactRequests.find(queryFilter)
       .sort('requestDate')
       .populate('user', ['displayName', 'accountHandle', 'photoURL'])
       .populate('topic')
@@ -732,7 +766,7 @@ module.exports.getAllContactTopics = () => {
  */
 module.exports.getAllEvents = () => {
   return new Promise((resolve, reject) => {
-    Events.find({})
+    Events.find({ startTime: { $gte: Date.now() } })
       .sort('name')
       .populate('category')
       .populate('host', ['accountHandle'])
@@ -746,13 +780,31 @@ module.exports.getAllEvents = () => {
   });
 };
 
+/**
+ * Get all events in the Mongo database which are part of a specified category.
+ *
+ * @param {ObjectId} catId The MongoDB ObjectId of the category to find events for.
+ * @returns {Promise<[{ _id: mongoose.Schema.Types.ObjectId, host: { accountHandle: String }, name: String, location: { lat: Number, lon: Number, address: String }, category: { name: String }, maxParticipants: Number, description: String, startTime: Date ]} An array of event objects.
+ */
+module.exports.getEventsByCategory = (catId) => {
+  return new Promise((resolve, reject) => {
+    Events.find({ category: catId, startTime: { $gte: Date.now() } })
+      .sort('name')
+      .populate('category')
+      .populate('host', ['accountHandle', 'photoURL', 'displayName'])
+      .exec()
+      .then((e) => resolve(e))
+      .catch((err) => reject(err));
+  });
+};
+
 // Return all events based on UserID
 module.exports.getAllEventsbyUserID = (userID) => {
   return new Promise((resolve, reject) => {
     Events.find({ host: userID })
       .sort('name')
       .populate('category')
-      .populate('host', ['accountHandle'])
+      .populate('host', ['accountHandle', 'displayName', 'photoURL'])
       .exec()
       .then((events) => {
         resolve(events);
@@ -768,7 +820,7 @@ module.exports.getSingleEventbyEventID = (eventID) => {
   return new Promise((resolve, reject) => {
     Events.findOne({ _id: eventID })
       .populate('category')
-      .populate('host', ['accountHandle'])
+      .populate('host', ['accountHandle', 'photoURL', 'displayName'])
       .exec()
       .then((events) => {
         resolve(events);
@@ -776,6 +828,18 @@ module.exports.getSingleEventbyEventID = (eventID) => {
       .catch((err) => {
         reject(err);
       });
+  });
+};
+
+// Get events by search.
+module.exports.getEventsBySearch = (searchQuery) => {
+  return new Promise((resolve, reject) => {
+    Events.find({ name: { $regex: searchQuery, $options: 'i' } })
+      .populate('category')
+      .populate('host', ['accountHandle', 'photoURL', 'displayName'])
+      .exec()
+      .then((events) => resolve(events))
+      .catch((err) => reject(err));
   });
 };
 
@@ -794,10 +858,10 @@ module.exports.addEvent = (eventData) => {
 };
 
 // Update event
-module.exports.updateEvent = (eventID, hostID, eventData) => {
+module.exports.updateEvent = (eventID, eventData) => {
   //Only host should be able to update their own Event
   return new Promise((resolve, reject) => {
-    Events.updateOne({ host: hostID, _id: eventID }, { $set: eventData })
+    Events.updateOne({ _id: eventID }, { $set: eventData })
       .exec()
       .then((updatedEvent) => {
         resolve(updatedEvent);
@@ -1086,6 +1150,12 @@ module.exports.getFAQQuestionByTopic = (topicID) => {
 module.exports.getAllUserRegisteredEvents = (uID) => {
   return new Promise((resolve, reject) => {
     EventRegistrations.find({ user: uID })
+      .select('-user')
+      .populate({
+        path: 'event',
+        select: 'name startTime host category location description maxParticipants',
+        populate: [{ path: 'host', select: 'accountHandle' }, { path: 'category' }],
+      })
       .exec()
       .then((registeredEvents) => {
         resolve(registeredEvents);
@@ -1110,6 +1180,24 @@ module.exports.addEventRegistration = (registrationData) => {
   });
 };
 
+// Get an event registration by id.
+module.exports.getEventRegistrationById = (eRId) => {
+  return new Promise((resolve, reject) => {
+    EventRegistrations.findOne({ _id: eRId })
+      .populate({
+        path: 'event',
+        select: 'name startTime host category location description maxParticipants',
+        populate: [{ path: 'host', select: 'accountHandle' }, { path: 'category' }],
+      })
+      .populate('user', ['accountHandle', 'email'])
+      .exec()
+      .then((registration) => {
+        resolve(registration);
+      })
+      .catch((err) => reject(err));
+  });
+};
+
 //Remove User from an Event
 module.exports.deleteEventRegistration = (registrationId) => {
   return new Promise((resolve, reject) => {
@@ -1122,4 +1210,23 @@ module.exports.deleteEventRegistration = (registrationId) => {
         reject(`There was a problem removing the registration. Please try again.`);
       });
   });
+};
+
+// Get the user's UUID from an event registration.
+module.exports.getUUIDFromEventRegistration = (rId) => {
+  return new Promise((resolve, reject) => {
+    EventRegistrations.findOne({ _id: rId })
+      .select('user')
+      .populate('user', ['uuid'])
+      .exec()
+      .then((r) => {
+        resolve(r.user.uuid);
+      })
+      .catch((err) => reject(err));
+  });
+};
+
+// Count event registrations by event.
+module.exports.countEventRegistrationsByEvent = async (eId) => {
+  return await EventRegistrations.countDocuments({ event: eId }).exec();
 };
