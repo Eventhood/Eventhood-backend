@@ -165,22 +165,26 @@ app.post('/api/follows', (req, res) => {
       if (!req.body.followData) {
         res.status(400).json({ error: `Follow data must be provided.` });
       } else {
-        if (req.body.followData.followedBy.uuid == uid) {
-          Database.addFollow(req.body.followData)
-            .then((follow) => {
-              res
-                .status(201)
-                .json({ message: `Successfully registered new user follow.`, data: follow });
-            })
-            .catch((err) => {
-              res.status(400).json({ error: err });
-            });
-        } else {
-          res.status(401).json({
-            error:
-              'Permissions do not meet required access for functionality. Please contact support.',
-          });
-        }
+        Database.getUserByObjectId(req.body.followData.followedBy)
+          .then((u) => {
+            if (u.uuid == uid) {
+              Database.addFollow(req.body.followData)
+                .then((follow) => {
+                  res
+                    .status(201)
+                    .json({ message: `Successfully registered new user follow.`, data: follow });
+                })
+                .catch((err) => {
+                  res.status(400).json({ error: err });
+                });
+            } else {
+              res.status(401).json({
+                error:
+                  'Permissions do not meet required access for functionality. Please contact support.',
+              });
+            }
+          })
+          .catch((err) => res.status(500).json({ error: err }));
       }
     })
     .catch((err) => {
